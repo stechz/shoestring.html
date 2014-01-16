@@ -1,0 +1,71 @@
+<!doctype html>
+<html ng-app="shoestring.app">
+
+<link rel="stylesheet" href="codemirror-3.20/lib/codemirror.css">
+<link rel="stylesheet" href="shoestring.css">
+
+<script src="angular.min.js"></script>
+<script src="angular-route.min.js"></script>
+<!--
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.8/angular.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.8/angular-route.js"></script>
+-->
+
+<script src="codemirror-3.20/lib/codemirror.js"></script>
+<script src="codemirror-3.20/mode/htmlmixed/htmlmixed.js"></script>
+<script src="codemirror-3.20/mode/xml/xml.js"></script>
+<script src="codemirror-3.20/mode/javascript/javascript.js"></script>
+<script src="codemirror-3.20/mode/css/css.js"></script>
+<script src="codemirror-3.20/addon/fold/xml-fold.js"></script>
+
+<script src="app.js"></script>
+<script src="editor.js"></script>
+<script src="fileutil.js"></script>
+<script src="syntaxwidget.js"></script>
+<script src="tab.js"></script>
+<script src="tokenstate.js"></script>
+<script src="view.js"></script>
+<script src="upload.js"></script>
+
+<script src="syntax/css.js"></script>
+<script src="syntax/script.js"></script>
+<script src="syntax/cssurl.js"></script>
+<script src="syntax/img.js"></script>
+
+<template name="app.html">
+  <div class="tabbed-editor">
+    <div tabs="selectedTab" class="editor-tabs">
+      <div style='float: right; vertical-align: top; padding: 4px'>
+        <a style='text-decoration: none; color: #999' href='#/'>&times;</a>
+      </div>
+
+      <p tab ng-if="!changeFilename" class="editor-tab" value="{{app.editFilename}}">
+      <p ng-if="changeFilename" class="editor-tab"><input ng-model="app.editFilename"
+         ng-blur="$parent.changeFilename = false" autofocus>
+
+      <p class="editor-open" ng-hide="changeFilename" ng-click="changeFilename = true">open&hellip;
+
+      <p class="editor-refresh" ng-click="app.refresh()" title="CTRL R">refresh
+    </div>
+    <editor ng-if="!app.upload" class="editor" change="app.setText(value)"
+            localstorage="{{app.editFilename}}" mode="{{app.editMode}}"></editor>
+    <div upload ng-if="app.upload" file="{{app.editFilename}}"></div>
+  </div>
+</template>
+
+<template name="upload.html">
+  <div class="editor-upload">
+    <div class="editor-fileinput"><input type="file"></div>
+    <div class="editor-drop" ng-if="!uploaded">
+      <div class="editor-drop-text">
+        Drop an image here
+      </div>
+    </div>
+    <img ng-if="uploaded" src="{{uploaded}}">
+  </div>
+</template>
+
+<body>
+
+<div ng-view></div>
+<div class="page" view="viewCtrl"></div>
