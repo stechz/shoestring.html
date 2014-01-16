@@ -19,10 +19,6 @@ var app = angular.module('shoestring.app', [
 var NoEditController = function($scope, $rootScope) {
   $rootScope.appKeypress = this.secretCode.bind(this);
 
-  $scope.$watch('viewCtrl', function(viewCtrl) {
-    viewCtrl.setText(localStorage['shoestring.main.html']);
-  });
-
   this.code = '';
 
   var handle = angular.element(document.body).on(
@@ -59,7 +55,6 @@ var AppController = function($scope, $route, $rootScope) {
   }
   this.scope = $scope;
   this.viewCtrl = $scope.viewCtrl;
-  this.refresh();
 
   $scope.$watch('changeFilename==false', (function() {
     location.href = '#/' + this.editFilename;
@@ -81,7 +76,7 @@ AppController.prototype.keypress = function(event) {
 };
 
 AppController.prototype.refresh = function() {
-  this.scope.viewCtrl.setText(localStorage[this.filename]);
+  this.scope.viewCtrl.setText(localStorage['shoestring.main.html']);
 };
 
 AppController.prototype.setText = function(text) {
@@ -113,6 +108,15 @@ app.config(function($routeProvider, $compileProvider) {
   });
 
    $compileProvider.imgSrcSanitizationWhitelist(/^\s*(https?|blob|data):/);
+});
+
+app.run(function($rootScope) {
+  var unlisten = $rootScope.$watch('viewCtrl', function(viewCtrl) {
+    if (viewCtrl) {
+      $rootScope.viewCtrl.setText(localStorage[this.filename]);
+      unlisten();
+    }
+  });
 });
 
 })();

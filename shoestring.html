@@ -39,11 +39,10 @@
         <a style='text-decoration: none; color: #999' href='#/'>&times;</a>
       </div>
 
-      <p tab ng-if="!changeFilename" class="editor-tab" value="{{app.editFilename}}">
+      <p tab ng-hide="changeFilename" class="editor-tab" value="{{app.editFilename}}"
+         ng-click="changeFilename = true">
       <p ng-if="changeFilename" class="editor-tab"><input ng-model="app.editFilename"
          ng-blur="$parent.changeFilename = false" autofocus>
-
-      <p class="editor-open" ng-hide="changeFilename" ng-click="changeFilename = true">open&hellip;
 
       <p class="editor-refresh" ng-click="app.refresh()" title="CTRL R">refresh
     </div>

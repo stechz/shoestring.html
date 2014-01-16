@@ -102,6 +102,11 @@ Controller.prototype.setText = function(text) {
            })(i));
     }
   }
+
+  var ngapp = doc.querySelector('[ng-app]');
+  if (ngapp) {
+    angular.element(doc.body).append('<script src="angular.min.js"></script>');
+  }
 };
 
 var module = angular.module('shoestring.view', []);
