@@ -1,5 +1,9 @@
 (function() {
 
+function lastPartOfUrl() {
+  return location.pathname.replace(/.*\//, '');
+}
+
 var app = angular.module('shoestring.app', [
   'shoestring.editor',
   'shoestring.view',
@@ -33,7 +37,7 @@ NoEditController.prototype.secretCode = function(ev) {
   this.code = this.code + String.fromCharCode(ev.keyCode);
 
   if (this.code == "editme") {
-    location.href = '#/shoestring.main.html';
+    location.href = '#/' + lastPartOfUrl();
   }
 
   if ('editme'.substring(0, this.code.length) != this.code) {
@@ -42,7 +46,7 @@ NoEditController.prototype.secretCode = function(ev) {
 };
 
 var AppController = function($scope, $route, $rootScope) {
-  this.filename = 'shoestring.main.html';
+  this.filename = lastPartOfUrl();
   this.editFilename = $route.current.params.filename;
   if (this.editFilename.match(/html$/)) {
     this.editMode = 'text/html';
@@ -76,24 +80,12 @@ AppController.prototype.keypress = function(event) {
 };
 
 AppController.prototype.refresh = function() {
-  this.scope.viewCtrl.setText(localStorage['shoestring.main.html']);
+  this.scope.viewCtrl.setText(localStorage[lastPartOfUrl()]);
 };
 
 AppController.prototype.setText = function(text) {
   localStorage[this.editFilename] = text;
 };
-
-app.directive('template', function($templateCache) {
-  var link = function(scope, element) {
-    $templateCache.put(scope.name, element.html());
-  };
-
-  return {
-    link: link,
-    restrict: 'AE',
-    scope: {name: '@'}
-  };
-});
 
 app.config(function($routeProvider, $compileProvider) {
   $routeProvider.when('/:filename*', {
@@ -111,9 +103,16 @@ app.config(function($routeProvider, $compileProvider) {
 });
 
 app.run(function($rootScope) {
+  if (!(lastPartOfUrl() in localStorage)) {
+    localStorage[lastPartOfUrl()] = angular.element(
+        document.getElementById('default.html')).html();
+    localStorage['default.css'] = angular.element(
+        document.getElementById('default.css')).html();
+  }
+
   var unlisten = $rootScope.$watch('viewCtrl', function(viewCtrl) {
     if (viewCtrl) {
-      $rootScope.viewCtrl.setText(localStorage[this.filename]);
+      $rootScope.viewCtrl.setText(localStorage[lastPartOfUrl()]);
       unlisten();
     }
   });

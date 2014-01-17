@@ -32,7 +32,7 @@
 <script src="syntax/cssurl.js"></script>
 <script src="syntax/img.js"></script>
 
-<template name="app.html">
+<script type="text/ng-template" id="app.html">
   <div class="tabbed-editor">
     <div tabs="selectedTab" class="editor-tabs">
       <div style='float: right; vertical-align: top; padding: 4px'>
@@ -52,7 +52,7 @@
   </div>
 </template>
 
-<template name="upload.html">
+<script type="text/ng-template" id="upload.html">
   <div class="editor-upload">
     <div class="editor-fileinput"><input type="file"></div>
     <div class="editor-drop" ng-if="!uploaded">
@@ -62,7 +62,134 @@
     </div>
     <img ng-if="uploaded" src="{{uploaded}}">
   </div>
-</template>
+</script>
+
+<script type="text" id="default.html">
+<!--
+
+  shoestring.html: Check it out at https://github.com/stechz/shoestring.html
+  By Joel Pigg
+
+  -->
+<!doctype html>
+<html>
+
+<div class="red">
+  Well, hello! Welcome to <b>shoestring.html</b>, a small experiment
+  for prototyping in AngularJS, using AngularJS. It's probably easier
+  to just show you what this does. In your browser tab, just type:
+</div>
+
+<div class="yellow">
+  editme
+</div>
+
+<!--
+
+  And now congrats! You can edit the HTML on this page. To start off,
+  why don't you remove style="display: none" from the div below?
+
+  To see your changes, just click "refresh" at the top or type CTRL-R.
+
+  -->
+
+<div style="display: none">
+  
+<div class="white">
+  So, that's the basics. Oh, you can use angular directives too.
+  <p class="code">1 + 1 = {{1+1}}
+  <p>Er, wait...that doesn't look right. Oh. You'll need to add ng-app
+    to the the &lt;html&gt; tag.
+</div>
+
+<div style="display: none" ng-style="{display:'block'}">
+
+<div class="blue">
+  Sweet, looks like you enabled angular. Maybe you'd like to play
+  around with the stylesheet. From the editor find the line for the
+  CSS link, and click on it. You'll see a blue box appear, and
+  clicking it will get you to the CSS.
+</div>
+  
+<link rel="stylesheet" href="default.css">
+  
+<div class="white">
+  <div class="selfie"></div>
+</div>
+</script>
+
+<script type="text" id="default.css">
+* {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  margin-right: 600px;
+  font-family: Helvetica;
+  line-height: 1.6;
+}
+
+.red {
+  background-color: #aa4444;
+  color: white;
+  padding: 40px;
+  font-size: 32px;
+}
+
+.yellow {
+  padding: 40px;
+  text-align: center;
+  background-color: #dddd44;
+  font-size: 32px;
+  color: #119;
+  letter-spacing: 3;
+}
+
+.white {
+  padding: 40px;
+  font-size: 32px;
+}
+
+.code {
+  margin: 40px 0;
+  font-family: monospace;
+  background-color: #eee;
+  padding: 10px;
+}
+
+.blue {
+  background-color: #449;
+  color: white;
+  padding: 40px;
+  font-size: 32px;
+}
+
+/*
+
+You can even upload images! Click on the url line below, and then
+click on the blue box that appears.
+
+*/
+
+.selfie {
+  background-image: url(selfie.png);
+  width: 300px;
+  height: 300px;
+  margin: auto;
+}
+
+/*
+
+OK, one last thing. If you want to create a new file, click on the
+filename up at the top to get an input box. All of it is saved to
+localStorage, so be careful about clearing your cache!
+
+Thanks
+Joel
+
+*/
+</script>
 
 <body>
 

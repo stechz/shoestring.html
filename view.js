@@ -9,6 +9,10 @@ var CssUrlReplacer = function(cssText, cssElement, callback) {
   // Use replace to find all the URLs in the css text.
   this.cssText.replace(/url\((.*)\)/g,
       function(all, url) { this.getUrl(url); }.bind(this));
+
+  if (!Object.keys(this.urls).length) {
+    this.finish();
+  }
 };
 
 CssUrlReplacer.prototype.getUrl = function(url) {
@@ -34,7 +38,7 @@ CssUrlReplacer.prototype.finish = function() {
   var text = this.cssText.replace(/url\((.*)\)/g,
       function(all, url) { return 'url(' + urls[url] + ')'; });
 
-  var url = URL.createObjectURL(new Blob([text]));
+  var url = URL.createObjectURL(new Blob([text], {type: 'image'}));
   this.cssElement.setAttribute('href', url);
 
   var callback = this.callback;
@@ -49,15 +53,12 @@ var Controller = function(element) {
 };
 
 Controller.prototype.setText = function(text) {
-  var fragment = document.createDocumentFragment();
-  fragment.innerHTML = text;
-
   var doc = document.implementation.createHTMLDocument('');
   doc.open();
   doc.write(text);
   doc.close();
 
-  var callbacks = 0;
+  var callbacks = 1;
   var trackCallback = function() {
     if (!--callbacks) {
       finalCallback();
@@ -73,7 +74,7 @@ Controller.prototype.setText = function(text) {
   var js = doc.querySelectorAll('script[src]');
   for (var i = 0; i < js.length; i++) {
     var src = js[i].getAttribute('src');
-    if (localStorage[src]) {
+    if (src in localStorage) {
       var url = URL.createObjectURL(new Blob([localStorage[src]]));
       js[i].setAttribute('src', url);
     }
@@ -82,7 +83,7 @@ Controller.prototype.setText = function(text) {
   var css = doc.querySelectorAll('link[href][rel=stylesheet]');
   for (var i = 0; i < css.length; i++) {
     var href = css[i].getAttribute('href');
-    if (localStorage[href]) {
+    if (href in localStorage) {
       callbacks++;
       new CssUrlReplacer(localStorage[href], css[i], trackCallback);
     }
@@ -91,7 +92,7 @@ Controller.prototype.setText = function(text) {
   var img = doc.querySelectorAll('img[src]');
   for (var i = 0; i < img.length; i++) {
     var src = img[i].getAttribute('src');
-    if (localStorage[src]) {
+    if (src in localStorage) {
       callbacks++;
       getURLFromLocalStorage(src,
           (function(i) {
@@ -105,8 +106,9 @@ Controller.prototype.setText = function(text) {
 
   var ngapp = doc.querySelector('[ng-app]');
   if (ngapp) {
-    angular.element(doc.body).append('<script src="angular.min.js"></script>');
+    angular.element(doc.head).append('<script src="angular.min.js"></script>');
   }
+  trackCallback();
 };
 
 var module = angular.module('shoestring.view', []);
