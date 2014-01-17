@@ -25,7 +25,7 @@ module.directive('upload', function() {
     var input = element[0].querySelector('input');
     input.addEventListener('change', handleFileSelect, false);
 
-    if (localStorage[scope.file]) {
+    if (loadFromLocalStorage(scope.file)) {
       getURLFromLocalStorage(scope.file, function(url) {
         scope.$apply(function() { scope.uploaded = url; });
       });

@@ -1,8 +1,16 @@
+function saveToStorage(key, val) {
+  localStorage[location.pathname + ':' + key] = val;
+}
+
+function loadFromStorage(key) {
+  return localStorage[location.pathname + ':' + key];
+}
+
 function saveToLocalStorage(name, arraybuffer) {
   var reader = new FileReader();
 
   reader.onload = function(e) {
-    localStorage[name] = e.target.result;
+    saveToStorage(name, e.target.result);
     reader = null;
   };
 
@@ -10,7 +18,7 @@ function saveToLocalStorage(name, arraybuffer) {
 }
 
 function getURLFromLocalStorage(name, callback) {
-  var str = localStorage[name];
+  var str = loadFromStorage(name);
   var arr = new Uint8Array(str.length);
   for (var i = 0; i < arr.length; i++) {
     arr[i] = str.charCodeAt(i);

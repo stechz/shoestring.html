@@ -80,11 +80,11 @@ AppController.prototype.keypress = function(event) {
 };
 
 AppController.prototype.refresh = function() {
-  this.scope.viewCtrl.setText(localStorage[lastPartOfUrl()]);
+  this.scope.viewCtrl.setText(loadFromStorage(lastPartOfUrl()));
 };
 
 AppController.prototype.setText = function(text) {
-  localStorage[this.editFilename] = text;
+  saveToStorage(this.editFilename, text);
 };
 
 app.config(function($routeProvider, $compileProvider) {
@@ -103,16 +103,17 @@ app.config(function($routeProvider, $compileProvider) {
 });
 
 app.run(function($rootScope) {
-  if (!(lastPartOfUrl() in localStorage)) {
-    localStorage[lastPartOfUrl()] = angular.element(
-        document.getElementById('default.html')).html();
-    localStorage['default.css'] = angular.element(
-        document.getElementById('default.css')).html();
+  if (loadFromStorage(lastPartOfUrl()) === undefined &&
+      loadFromStorage('default.css') === undefined) {
+    saveToStorage(lastPartOfUrl(), angular.element(
+        document.getElementById('default.html')).html());
+    saveToStorage('default.css', angular.element(
+        document.getElementById('default.css')).html());
   }
 
   var unlisten = $rootScope.$watch('viewCtrl', function(viewCtrl) {
     if (viewCtrl) {
-      $rootScope.viewCtrl.setText(localStorage[lastPartOfUrl()]);
+      $rootScope.viewCtrl.setText(loadFromStorage(lastPartOfUrl()));
       unlisten();
     }
   });

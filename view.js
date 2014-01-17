@@ -16,8 +16,10 @@ var CssUrlReplacer = function(cssText, cssElement, callback) {
 };
 
 CssUrlReplacer.prototype.getUrl = function(url) {
-  this.urls[url] = null;
-  getURLFromLocalStorage(url, this.onUrlReceived.bind(this, url));
+  if (loadFromStorage(url)) {
+    this.urls[url] = null;
+    getURLFromLocalStorage(url, this.onUrlReceived.bind(this, url));
+  }
 };
 
 CssUrlReplacer.prototype.onUrlReceived = function(origUrl, replaceUrl) {
@@ -74,8 +76,8 @@ Controller.prototype.setText = function(text) {
   var js = doc.querySelectorAll('script[src]');
   for (var i = 0; i < js.length; i++) {
     var src = js[i].getAttribute('src');
-    if (src in localStorage) {
-      var url = URL.createObjectURL(new Blob([localStorage[src]]));
+    if (loadFromStorage(src)) {
+      var url = URL.createObjectURL(new Blob([loadFromStorage(src)]));
       js[i].setAttribute('src', url);
     }
   }
@@ -83,16 +85,16 @@ Controller.prototype.setText = function(text) {
   var css = doc.querySelectorAll('link[href][rel=stylesheet]');
   for (var i = 0; i < css.length; i++) {
     var href = css[i].getAttribute('href');
-    if (href in localStorage) {
+    if (loadFromStorage(href)) {
       callbacks++;
-      new CssUrlReplacer(localStorage[href], css[i], trackCallback);
+      new CssUrlReplacer(loadFromStorage(href), css[i], trackCallback);
     }
   }
 
   var img = doc.querySelectorAll('img[src]');
   for (var i = 0; i < img.length; i++) {
     var src = img[i].getAttribute('src');
-    if (src in localStorage) {
+    if (loadFromStorage(src)) {
       callbacks++;
       getURLFromLocalStorage(src,
           (function(i) {

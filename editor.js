@@ -6,8 +6,8 @@ module.directive('editor', function($timeout) {
   var link = function(scope, element) {
     var textarea = element.children()[0];
 
-    if (scope.localstorage && localStorage[scope.localstorage]) {
-      textarea.value = localStorage[scope.localstorage];
+    if (scope.localstorage && loadFromStorage(scope.localstorage)) {
+      textarea.value = loadFromStorage(scope.localstorage);
     }
 
     var options = {mode: scope.mode, lineNumbers: true, autofocus: true};
@@ -16,11 +16,6 @@ module.directive('editor', function($timeout) {
 
     var runExpression = function() {
       scope.change({value: editor.getValue()});
-
-      if (scope.localstorage) {
-        localStorage[scope.localstorage] = editor.getValue();
-      }
-
       promise = null;
     };
 
