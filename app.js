@@ -25,16 +25,20 @@ var NoEditController = function($scope, $rootScope) {
 
   this.code = '';
 
-  var handle = angular.element(document.body).on(
-      'keypress', this.secretCode.bind(this));
+  var iframe = angular.element(
+      document.querySelector('iframe').contentDocument);
+  var body = angular.element(document.body);
+  var handleIframe = iframe.on('keypress', this.secretCode.bind(this));
+  var handleBody = body.on('keypress', this.secretCode.bind(this));
 
   $scope.$on('$destroy', function() {
-    angular.element(document.body).off('keypress', handle);
+    iframe.off('keypress', handleIframe);
+    body.off('keypress', handleBody);
   });
 };
 
 NoEditController.prototype.secretCode = function(ev) {
-  this.code = this.code + String.fromCharCode(ev.keyCode);
+  this.code = this.code + String.fromCharCode(ev.keyCode || ev.charCode);
 
   if (this.code == "editme") {
     location.href = '#/' + lastPartOfUrl();

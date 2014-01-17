@@ -8,14 +8,12 @@ body {
 .page {
   border: 0;
   height: 100%;
-  position: relative;
+  position: absolute;
   width: 100%;
 }
 
 .tabbed-editor {
   background-color: white;
-  display: flex;
-  flex-flow: column;
   position: absolute;
   top: 0;
   width: 600px;
@@ -29,9 +27,12 @@ body {
 }
 
 .editor {
-  position: relative;
-  flex: 1 0 auto;
+  top: 30px;
+  bottom: 0;
+  position: absolute;
   z-index: 1;
+  left: 0;
+  right: 0;
 }
 
 .editor .CodeMirror {

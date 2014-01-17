@@ -40,7 +40,7 @@ CssUrlReplacer.prototype.finish = function() {
   var text = this.cssText.replace(/url\((.*)\)/g,
       function(all, url) { return 'url(' + urls[url] + ')'; });
 
-  var url = URL.createObjectURL(new Blob([text], {type: 'image'}));
+  var url = URL.createObjectURL(new Blob([text]));
   this.cssElement.setAttribute('href', url);
 
   var callback = this.callback;
@@ -52,10 +52,20 @@ CssUrlReplacer.prototype.finish = function() {
 var Controller = function(element) {
   this.element = element;
   this.document = element.contentDocument || element.contentWindow.document;
+
+  // Firefox hack. Otherwise iframe window stays on about:blank.
+  this.element.contentWindow.location.href = '#test';
+  this.document.open();
+  this.document.write('');
+  this.document.close();
 };
 
 Controller.prototype.setText = function(text) {
-  var doc = document.implementation.createHTMLDocument('');
+  var iframe = document.createElement('iframe');
+  iframe.style.visibility = 'hidden';
+  document.body.appendChild(iframe);
+
+  var doc = iframe.contentDocument;
   doc.open();
   doc.write(text);
   doc.close();
@@ -68,8 +78,11 @@ Controller.prototype.setText = function(text) {
   };
 
   var finalCallback = function() {
+    var text = doc.documentElement.outerHTML;
+    document.body.removeChild(iframe);
+
     this.document.open();
-    this.document.write(doc.documentElement.outerHTML);
+    this.document.write('<!doctype html>' + text);
     this.document.close();
   }.bind(this);
 
@@ -77,8 +90,17 @@ Controller.prototype.setText = function(text) {
   for (var i = 0; i < js.length; i++) {
     var src = js[i].getAttribute('src');
     if (loadFromStorage(src)) {
-      var url = URL.createObjectURL(new Blob([loadFromStorage(src)]));
-      js[i].setAttribute('src', url);
+      // Firefox does not allow blob URIs to be read. So we have to inject the
+      // source code into the iframe.
+      //      var url = URL.createObjectURL(new Blob([loadFromStorage(src),
+      //                    {type: 'text/javascript'}]));
+      //     js[i].setAttribute('src', url);
+
+      js[i].removeAttribute('src');
+      var script = doc.createElement('script');
+      script.innerHTML = loadFromStorage(src);
+      doc.body.appendChild(script);
+      js[i].innerHTML = loadFromStorage(src);
     }
   }
 
@@ -86,6 +108,7 @@ Controller.prototype.setText = function(text) {
   for (var i = 0; i < css.length; i++) {
     var href = css[i].getAttribute('href');
     if (loadFromStorage(href)) {
+      css[i].removeAttribute('href');
       callbacks++;
       new CssUrlReplacer(loadFromStorage(href), css[i], trackCallback);
     }
@@ -96,6 +119,7 @@ Controller.prototype.setText = function(text) {
     var src = img[i].getAttribute('src');
     if (loadFromStorage(src)) {
       callbacks++;
+      img[i].removeAttribute('src');
       getURLFromLocalStorage(src,
           (function(i) {
             return function(url) {
@@ -108,7 +132,8 @@ Controller.prototype.setText = function(text) {
 
   var ngapp = doc.querySelector('[ng-app]');
   if (ngapp) {
-    angular.element(doc.head).append('<script src="angular.min.js"></script>');
+    angular.element(doc.head).append(
+        '<script type="text/javascript" src="angular.js"></script>');
   }
   trackCallback();
 };
