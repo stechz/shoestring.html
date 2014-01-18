@@ -1,10 +1,12 @@
 (function() {
 
 // not localhost
-var CLIENT_ID = '705423460585-3ne5aiq1fend9ch9qqnic6llr06gtp3g.apps.googleusercontent.com';
-
-// localhost
-var CLIENT_ID = '705423460585-n34vpp4vue8mupcv84aliep0kiu7qfq2.apps.googleusercontent.com';
+var CLIENT_ID;
+if (location.host == 'localhost') {
+  CLIENT_ID = '705423460585-n34vpp4vue8mupcv84aliep0kiu7qfq2.apps.googleusercontent.com';
+} else if (location.host == 'optimum-airfoil-463.appspot.com') {
+  CLIENT_ID = '705423460585-3ne5aiq1fend9ch9qqnic6llr06gtp3g.apps.googleusercontent.com';
+}
 
 var SCOPES = [
     'https://www.googleapis.com/auth/drive.file',
@@ -22,10 +24,14 @@ window.gapiInit = function(callback) {
   if (loaded) {
     callback();
   } else {
-    angular.element(document.body).append(
-        '<script src="https://apis.google.com/js/client.js?onload=checkAuth">' +
-        '</script>');
     callbacks.push(callback);
+    checkAuth();
+  }
+};
+
+window.gapiInitScript = function() {
+  if (callbacks.length) {
+    checkAuth();
   }
 };
 
@@ -33,7 +39,7 @@ window.gapiInit = function(callback) {
  * Check if the current user has authorized the application.
  */
 window.checkAuth = function() {
-  if (window.gapi.auth) {
+  if (window.gapi && window.gapi.auth) {
     gapi.auth.authorize(
         {'client_id': CLIENT_ID, 'scope': SCOPES.join(' '), 'immediate': true},
         handleAuthResult);

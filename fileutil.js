@@ -18,6 +18,8 @@ function guessMimeType(name) {
     return 'image/jpeg';
   } else if (name.match(/gif$/)) {
     return 'image/gif';
+  } else {
+    return 'text/plain';
   }
 }
 
@@ -80,14 +82,15 @@ function getURLFromLocalStorage(name, callback) {
   for (var i = 0; i < arr.length; i++) {
     arr[i] = str.charCodeAt(i);
   }
-  getURLFromFile(new Blob([arr]), callback);
+  getURLFromFile(new Blob([arr], {type: guessMimeType(name)}), callback);
 }
 
 function getURLFromFile(file, callback) {
   var reader = new FileReader();
 
   reader.onload = function(e) {
-    callback(URL.createObjectURL(new Blob([e.target.result])));
+    callback(URL.createObjectURL(
+        new Blob([e.target.result], {type: guessMimeType(name)})));
     reader = null;
   };
 
