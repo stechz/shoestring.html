@@ -68,7 +68,6 @@ Controller.prototype.setText = function(text) {
   var doc = iframe.contentDocument;
   doc.open();
   doc.write(text);
-  doc.close();
 
   var callbacks = 1;
   var trackCallback = function() {
@@ -92,15 +91,9 @@ Controller.prototype.setText = function(text) {
     if (loadFromStorage(src)) {
       // Firefox does not allow blob URIs to be read. So we have to inject the
       // source code into the iframe.
-      //      var url = URL.createObjectURL(new Blob([loadFromStorage(src),
-      //                    {type: 'text/javascript'}]));
-      //     js[i].setAttribute('src', url);
-
-      js[i].removeAttribute('src');
-      var script = doc.createElement('script');
-      script.innerHTML = loadFromStorage(src);
-      doc.body.appendChild(script);
-      js[i].innerHTML = loadFromStorage(src);
+      var url = URL.createObjectURL(new Blob([loadFromStorage(src)],
+                      {type: 'text/javascript'}));
+      js[i].setAttribute('src', url);
     }
   }
 

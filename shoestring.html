@@ -6,10 +6,6 @@
 
 <script src="angular.js"></script>
 <script src="angular-route.js"></script>
-<!--
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.8/angular.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.8/angular-route.js"></script>
--->
 
 <script src="codemirror-3.20/lib/codemirror.js"></script>
 <script src="codemirror-3.20/mode/htmlmixed/htmlmixed.js"></script>
@@ -32,11 +28,17 @@
 <script src="syntax/cssurl.js"></script>
 <script src="syntax/img.js"></script>
 
+<script src="oauth.js"></script>
+
 <script type="text/ng-template" id="app.html">
   <div class="tabbed-editor">
     <div tabs="selectedTab" class="editor-tabs">
-      <div style='float: right; vertical-align: top; padding: 4px'>
-        <a style='text-decoration: none; color: #999' href='#/'>&times;</a>
+      <div class="editor-rightside">
+        <span ng-hide="app.gapi"
+              class="editor-rightitem" ng-click="app.gapiDialog()">sync with drive
+        </span>
+        <span ng-show="app.gapi" class="editor-rightitem">synced to {{app.gapi}}</span>
+        <a class="editor-rightitem editor-close" href="#"'>&times;</a>
       </div>
 
       <p tab ng-hide="changeFilename" class="editor-tab" value="{{app.editFilename}}"

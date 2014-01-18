@@ -20,6 +20,8 @@ body {
   bottom: 0;
   right: 0;
   z-index: 1;
+  font-size: 12px;
+  color: #999;
 }
 
 .editor-csslink {
@@ -62,6 +64,23 @@ body {
   font-size: 12px;
   padding: 8px;
   margin: 0 6px 0 0;
+}
+
+.editor-rightside {
+  float: right;
+  vertical-align: top;
+  padding: 4px;
+}
+
+.editor-rightitem {
+  margin-left: 10px;
+  padding: 4px;
+  cursor: pointer;
+}
+
+.editor-close {
+  text-decoration: none;
+  font-size: 16px;
 }
 
 .editor-open, .editor-refresh {
