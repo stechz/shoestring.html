@@ -14,9 +14,6 @@ var Controller = function(element, urlRegistry, $q) {
   this.document.close();
 };
 
-Controller.prototype.cssUrlReplacer = function(cssText, cssElement) {
-}
-
 Controller.prototype.setText = function(text) {
   var iframe = document.createElement('iframe');
   iframe.style.visibility = 'hidden';
@@ -101,6 +98,9 @@ var module = angular.module('shoestring.view', []);
 
 module.directive('view', function($parse, $timeout, urlRegistry, $injector) {
   var link = function(scope, element) {
+    // The view attribute determines what the name of the controller is going
+    // to be on the scope, so here we instantiate the controller ourselves
+    // instead of using controllerAs.
     var controller = $injector.instantiate(Controller, {element: element[0]})
     $parse(scope.view).assign(scope.$parent, controller);
   };
