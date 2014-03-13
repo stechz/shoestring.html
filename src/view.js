@@ -1,55 +1,9 @@
 (function() {
 
-var CssUrlReplacer = function(cssText, cssElement, callback) {
-  this.cssText = cssText;
-  this.cssElement = cssElement;
-  this.urls = {};
-  this.callback = callback;
+var Controller = function(element, urlRegistry, $q) {
+  this.urlRegistry_ = urlRegistry;
+  this.q_ = $q;
 
-  // Use replace to find all the URLs in the css text.
-  this.cssText.replace(/url\((.*)\)/g,
-      function(all, url) { this.getUrl(url); }.bind(this));
-
-  if (!Object.keys(this.urls).length) {
-    this.finish();
-  }
-};
-
-CssUrlReplacer.prototype.getUrl = function(url) {
-  if (loadFromStorage(url)) {
-    this.urls[url] = null;
-    getURLFromLocalStorage(url, this.onUrlReceived.bind(this, url));
-  }
-};
-
-CssUrlReplacer.prototype.onUrlReceived = function(origUrl, replaceUrl) {
-  this.urls[origUrl] = replaceUrl;
-
-  for (var url in this.urls) {
-    if (!this.urls[url]) {
-      return;
-    }
-  }
-
-  // All URLs have been fetched.
-  this.finish();
-};
-
-CssUrlReplacer.prototype.finish = function() {
-  var urls = this.urls;
-  var text = this.cssText.replace(/url\((.*)\)/g,
-      function(all, url) { return 'url(' + urls[url] + ')'; });
-
-  var url = URL.createObjectURL(new Blob([text]));
-  this.cssElement.setAttribute('href', url);
-
-  var callback = this.callback;
-  if (callback) {
-    callback();
-  }
-};
-
-var Controller = function(element) {
   this.element = element;
   this.document = element.contentDocument || element.contentWindow.document;
 
@@ -60,6 +14,9 @@ var Controller = function(element) {
   this.document.close();
 };
 
+Controller.prototype.cssUrlReplacer = function(cssText, cssElement) {
+}
+
 Controller.prototype.setText = function(text) {
   var iframe = document.createElement('iframe');
   iframe.style.visibility = 'hidden';
@@ -69,57 +26,58 @@ Controller.prototype.setText = function(text) {
   doc.open();
   doc.write(text);
 
-  var callbacks = 1;
-  var trackCallback = function() {
-    if (!--callbacks) {
-      finalCallback();
-    }
-  };
-
-  var finalCallback = function() {
-    var text = doc.documentElement.outerHTML;
-    document.body.removeChild(iframe);
-
-    this.document.open();
-    this.document.write('<!doctype html>' + text);
-    this.document.close();
-  }.bind(this);
+  var promises = [];
 
   var js = doc.querySelectorAll('script[src]');
   for (var i = 0; i < js.length; i++) {
     var src = js[i].getAttribute('src');
-    if (loadFromStorage(src)) {
-      // Firefox does not allow blob URIs to be read. So we have to inject the
-      // source code into the iframe.
-      var url = URL.createObjectURL(new Blob([loadFromStorage(src)],
-                      {type: 'text/javascript'}));
-      js[i].setAttribute('src', url);
+    if (this.urlRegistry_.has(src)) {
+      promises.push(this.urlRegistry_.map(src).then(function(js, url) {
+        js.setAttribute('src', url);
+      }.bind(this, js[i])));
     }
   }
 
   var css = doc.querySelectorAll('link[href][rel=stylesheet]');
   for (var i = 0; i < css.length; i++) {
     var href = css[i].getAttribute('href');
-    if (loadFromStorage(href)) {
+    if (this.urlRegistry_.has(href)) {
       css[i].removeAttribute('href');
-      callbacks++;
-      new CssUrlReplacer(loadFromStorage(href), css[i], trackCallback);
+
+      var urlPromise = this.urlRegistry_.contents(href).then(
+          function(cssElement, cssText) {
+        // Use replace to find all the URLs in the css text.
+        var urlPromises = {};
+        cssText.replace(/url\((.*)\)/g, function(all, url) {
+          if (this.urlRegistry_.has(url)) {
+            urlPromises[url] = this.urlRegistry_.map(url);
+          }
+        }.bind(this));
+
+        this.q_.all(urlPromises).then(function(urls) {
+          // urls is a map from old URLs to new URLs.
+          var text = cssText.replace(/url\((.*)\)/g,
+              function(all, url) { return 'url(' + urls[url] + ')'; });
+          var url = URL.createObjectURL(new Blob([text]));
+          cssElement.setAttribute('href', url);
+        });
+      }.bind(this, css[i]));
+
+      promises.push(urlPromise);
     }
   }
 
   var img = doc.querySelectorAll('img[src]');
   for (var i = 0; i < img.length; i++) {
     var src = img[i].getAttribute('src');
-    if (loadFromStorage(src)) {
-      callbacks++;
+    if (this.urlRegistry_.has(src)) {
       img[i].removeAttribute('src');
-      getURLFromLocalStorage(src,
-          (function(i) {
-            return function(url) {
-              img[i].setAttribute('src', url);
-              trackCallback();
-            }
-           })(i));
+
+      var urlPromise = this.urlRegistry_.map(src).then(function(img, url) {
+        img.setAttribute('src', url);
+      }.bind(this, img[i]));
+
+      promises.push(urlPromise);
     }
   }
 
@@ -128,14 +86,23 @@ Controller.prototype.setText = function(text) {
     angular.element(doc.head).append(
         '<script type="text/javascript" src="angular.js"></script>');
   }
-  trackCallback();
+
+  this.q_.all(promises).then(function() {
+    var text = doc.documentElement.outerHTML;
+    document.body.removeChild(iframe);
+
+    this.document.open();
+    this.document.write('<!doctype html>' + text);
+    this.document.close();
+  }.bind(this));
 };
 
 var module = angular.module('shoestring.view', []);
 
-module.directive('view', function($parse, $timeout) {
+module.directive('view', function($parse, $timeout, urlRegistry, $injector) {
   var link = function(scope, element) {
-    $parse(scope.view).assign(scope.$parent, new Controller(element[0]));
+    var controller = $injector.instantiate(Controller, {element: element[0]})
+    $parse(scope.view).assign(scope.$parent, controller);
   };
 
   return {

@@ -10,6 +10,7 @@ var app = angular.module('shoestring.app', [
   'shoestring.tab',
   'shoestring.tokenstate',
   'shoestring.upload',
+  'shoestring.urlRegistry',
 
   'shoestring.syntaxwidget',
   'shoestring.syntax.css',
