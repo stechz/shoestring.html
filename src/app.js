@@ -54,8 +54,6 @@ var AppController = function($scope, $route, $rootScope) {
   this.upload = !!this.editMode.match('image');
   this.scope = $scope;
   this.viewCtrl = $scope.viewCtrl;
-  this.gapiId = getGapiRoot();
-  this.gapi = this.gapiId ? 'shoestring.html' : null;
 
   $scope.$watch('changeFilename==false', (function() {
     location.href = '#/' + this.editFilename;
@@ -67,27 +65,6 @@ var AppController = function($scope, $route, $rootScope) {
   $scope.$on('$destroy', function() {
     angular.element(document.body).off('keydown', handle);
   });
-};
-
-AppController.prototype.gapiDialog = function(event) {
-  if (this.gapi) {
-    return;
-  }
-
-  gapiInit(function() {
-    insertFile('shoestring.html/', null, null, null, function(file) {
-      this.scope.$apply(function() {
-        this.gapi = 'shoestring.html';
-        this.gapiId = file.id;
-        setGapiRoot(file.id);
-
-        var files = listFiles();
-        for (var i = 0; i < files.length; i++) {
-          saveToStorage(files[i], loadFromStorage(files[i]));
-        }
-      }.bind(this));
-    }.bind(this));
-  }.bind(this));
 };
 
 AppController.prototype.keypress = function(event) {

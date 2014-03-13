@@ -1,7 +1,7 @@
 <!doctype html>
 <html ng-app="shoestring.app">
 
-<link rel="stylesheet" href="codemirror-3.22/lib/codemirror.css">
+<link rel="stylesheet" href="lib/codemirror-3.22/lib/codemirror.css">
 <link rel="stylesheet" href="shoestring.css">
 
 <script src="lib/angular.js"></script>
@@ -28,19 +28,22 @@
 <script src="src/syntax/cssurl.js"></script>
 <script src="src/syntax/img.js"></script>
 
-<script src="polyfill/canvas-to-blob.js"></script>
+<script src="lib/polyfill/canvas-to-blob.js"></script>
 
-<script src="src/oauth.js"></script>
-<script src="https://apis.google.com/js/client.js?onload=gapiInitScript"></script>
+<!--
+TODO, figure out how to properly hook up google drive to the editor.
+
+<script src="src/goog-drive.js"></script>
+<script src="https://apis.google.com/js/client.js?onload=gapiInitScript">
+</script>
+-->
 
 <script type="text/ng-template" id="app.html">
   <div class="tabbed-editor">
+
     <div tabs="selectedTab" class="editor-tabs">
       <div class="editor-rightside">
-        <span ng-hide="app.gapi"
-              class="editor-rightitem" ng-click="app.gapiDialog()">sync with drive
-        </span>
-        <span ng-show="app.gapi" class="editor-rightitem">synced to {{app.gapi}}</span>
+        <ng-include src="app.extension"></ng-include>
         <a class="editor-rightitem editor-close" href="#"'>&times;</a>
       </div>
 
@@ -51,11 +54,21 @@
 
       <p class="editor-refresh" ng-click="app.refresh()" title="CTRL R">refresh
     </div>
+
     <editor ng-if="!app.upload" class="editor" change="app.setText(value)"
             localstorage="{{app.editFilename}}" mode="{{app.editMode}}"></editor>
+
     <div upload ng-if="app.upload" file="{{app.editFilename}}"></div>
+
   </div>
 </template>
+
+<script type="text/ng-template" id="goog-drive.html">
+  <span ng-hide="app.gapi"
+        class="editor-rightitem" ng-click="app.gapiDialog()">sync with drive
+  </span>
+  <span ng-show="app.gapi" class="editor-rightitem">synced to {{app.gapi}}</span>
+</script>
 
 <script type="text/ng-template" id="upload.html">
   <div class="editor-upload">

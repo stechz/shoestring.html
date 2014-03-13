@@ -1,6 +1,5 @@
 (function() {
 
-// not localhost
 var CLIENT_ID;
 if (location.host == 'localhost') {
   CLIENT_ID = '705423460585-n34vpp4vue8mupcv84aliep0kiu7qfq2.apps.googleusercontent.com';
@@ -159,3 +158,46 @@ window.insertFile = function(name, type, blob, parentFolderId, callback) {
 };
 
 })();
+
+var storageGapiRoot = '';
+
+if ((location.pathname + '.gapi') in localStorage) {
+  storageGapiRoot = localStorage[location.pathname + '.gapi'];
+}
+
+function getGapiRoot() {
+  return localStorage[location.pathname + '.gapi'];
+}
+
+function setGapiRoot(root) {
+  storageGapiRoot = root;
+  localStorage[location.pathname + '.gapi'] = root;
+}
+
+function gapiSaveToStorage(key, val) {
+  if (storageGapiRoot) {
+    var gapi = location.pathname + '.gapi:' + key;
+    gapiInit(function() {
+      if (localStorage[gapi]) {
+        window.updateFile(key, guessMimeType(key), new Blob([val]),
+            localStorage[gapi]);
+      } else {
+        window.insertFile(key, guessMimeType(key), new Blob([val]),
+            storageGapiRoot, function(file) {
+          localStorage[gapi] = file.id;
+        });
+      }
+    });
+  }
+}
+
+function saveShoestringHtml(callback) {
+  gapiInit(function() {
+    insertFile('shoestring.html/', null, null, null, function(file) {
+      callback('shoestring.html', file.id);
+      for (var i = 0; i < files.length; i++) {
+        saveToStorage(files[i], loadFromStorage(files[i]));
+      }
+    });
+  });
+}
