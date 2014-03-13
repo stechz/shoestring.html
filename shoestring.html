@@ -1,34 +1,36 @@
 <!doctype html>
 <html ng-app="shoestring.app">
 
-<link rel="stylesheet" href="codemirror-3.20/lib/codemirror.css">
+<link rel="stylesheet" href="codemirror-3.22/lib/codemirror.css">
 <link rel="stylesheet" href="shoestring.css">
 
-<script src="angular.js"></script>
-<script src="angular-route.js"></script>
+<script src="lib/angular.js"></script>
+<script src="lib/angular-route.js"></script>
 
-<script src="codemirror-3.20/lib/codemirror.js"></script>
-<script src="codemirror-3.20/mode/htmlmixed/htmlmixed.js"></script>
-<script src="codemirror-3.20/mode/xml/xml.js"></script>
-<script src="codemirror-3.20/mode/javascript/javascript.js"></script>
-<script src="codemirror-3.20/mode/css/css.js"></script>
-<script src="codemirror-3.20/addon/fold/xml-fold.js"></script>
+<script src="lib/codemirror-3.22/lib/codemirror.js"></script>
+<script src="lib/codemirror-3.22/mode/htmlmixed/htmlmixed.js"></script>
+<script src="lib/codemirror-3.22/mode/xml/xml.js"></script>
+<script src="lib/codemirror-3.22/mode/javascript/javascript.js"></script>
+<script src="lib/codemirror-3.22/mode/css/css.js"></script>
+<script src="lib/codemirror-3.22/addon/fold/xml-fold.js"></script>
 
-<script src="app.js"></script>
-<script src="editor.js"></script>
-<script src="fileutil.js"></script>
-<script src="syntaxwidget.js"></script>
-<script src="tab.js"></script>
-<script src="tokenstate.js"></script>
-<script src="view.js"></script>
-<script src="upload.js"></script>
+<script src="src/app.js"></script>
+<script src="src/editor.js"></script>
+<script src="src/fileutil.js"></script>
+<script src="src/syntaxwidget.js"></script>
+<script src="src/tab.js"></script>
+<script src="src/tokenstate.js"></script>
+<script src="src/view.js"></script>
+<script src="src/upload.js"></script>
 
-<script src="syntax/css.js"></script>
-<script src="syntax/script.js"></script>
-<script src="syntax/cssurl.js"></script>
-<script src="syntax/img.js"></script>
+<script src="src/syntax/css.js"></script>
+<script src="src/syntax/script.js"></script>
+<script src="src/syntax/cssurl.js"></script>
+<script src="src/syntax/img.js"></script>
 
-<script src="oauth.js"></script>
+<script src="polyfill/canvas-to-blob.js"></script>
+
+<script src="src/oauth.js"></script>
 <script src="https://apis.google.com/js/client.js?onload=gapiInitScript"></script>
 
 <script type="text/ng-template" id="app.html">
@@ -58,12 +60,30 @@
 <script type="text/ng-template" id="upload.html">
   <div class="editor-upload">
     <div class="editor-fileinput"><input type="file"></div>
-    <div class="editor-drop" ng-if="!uploaded">
+    <div class="editor-drop" ng-if="!ctrl.uploaded">
       <div class="editor-drop-text">
         Drop an image here
       </div>
     </div>
-    <img ng-if="uploaded" src="{{uploaded}}">
+    <button ng-click="ctrl.fit()">Fit</button>
+    <button ng-click="ctrl.zoom(.25)">25%</button>
+    <button ng-click="ctrl.zoom(.50)">50%</button>
+    <button ng-click="ctrl.zoom(1.0)">100%</button>
+    <button ng-click="ctrl.crop()" ng-hide="!ctrl.selection.width">Crop</button>
+    <button ng-click="ctrl.revert()" ng-hide="!ctrl.originalImg">Revert
+      </button>
+    <div class="editor-crop">
+      <div class="editor-img-parent" ng-mousedown="ctrl.dragBegin($event)">
+        <svg style="position: absolute; z-index: 1;" width="100%" height="100%">
+          <rect style="fill-opacity: 0; stroke: black"
+                ng-attr-x="{{ctrl.selection.x}}" ng-attr-y="{{ctrl.selection.y}}"
+                ng-attr-width="{{ctrl.selection.width}}"
+                ng-attr-height="{{ctrl.selection.height}}"
+                stroke-dasharray="20,4">
+        </svg>
+        <img ng-if="ctrl.uploaded" src="{{ctrl.uploaded}}">
+      </div>
+    </div>
   </div>
 </script>
 

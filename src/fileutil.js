@@ -54,7 +54,7 @@ function saveToStorage(key, val) {
       } else {
         window.insertFile(key, guessMimeType(key), new Blob([val]),
             storageGapiRoot, function(file) {
-          localStorage[gapi] = file.id
+          localStorage[gapi] = file.id;
         });
       }
     });

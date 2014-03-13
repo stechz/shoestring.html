@@ -115,6 +115,14 @@ body {
   height: 100%;
 }
 
+.editor-crop {
+  overflow-x: auto;
+}
+
+.editor-img-parent {
+  margin: auto;
+}
+
 .editor-fileinput {
   margin-top: 10px;
   text-align: center;
