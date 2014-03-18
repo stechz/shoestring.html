@@ -51,7 +51,7 @@ Controller.prototype.setText = function(text) {
           }
         }.bind(this));
 
-        this.q_.all(urlPromises).then(function(urls) {
+        return this.q_.all(urlPromises).then(function(urls) {
           // urls is a map from old URLs to new URLs.
           var text = cssText.replace(/url\((.*)\)/g,
               function(all, url) { return 'url(' + urls[url] + ')'; });
