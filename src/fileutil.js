@@ -37,11 +37,14 @@ function loadFromStorage(key) {
   return localStorage[location.pathname + ':' + key];
 }
 
-function saveToLocalStorage(name, arraybuffer) {
+function saveToLocalStorage(name, arraybuffer, callback) {
   var reader = new FileReader();
 
   reader.onload = function(e) {
     saveToStorage(name, e.target.result);
+    if (callback) {
+      callback();
+    }
     reader = null;
   };
 

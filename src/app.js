@@ -48,13 +48,14 @@ NoEditController.prototype.secretCode = function(ev) {
   }
 };
 
-var AppController = function($scope, $route, $rootScope) {
+var AppController = function($scope, $route, urlRegistry) {
   this.filename = lastPartOfUrl();
   this.editFilename = $route.current.params.filename;
   this.editMode = guessMimeType(this.editFilename);
   this.upload = !!this.editMode.match('image');
   this.scope = $scope;
   this.viewCtrl = $scope.viewCtrl;
+  this.urlRegistry = urlRegistry;
 
   $scope.$watch('changeFilename==false', (function() {
     location.href = '#/' + this.editFilename;
@@ -76,11 +77,14 @@ AppController.prototype.keypress = function(event) {
 };
 
 AppController.prototype.refresh = function() {
-  this.scope.viewCtrl.setText(loadFromStorage(lastPartOfUrl()));
+  var promise = this.urlRegistry.contents(lastPartOfUrl());
+  promise.then(function(text) {
+    this.scope.viewCtrl.setText(text);
+  }.bind(this));
 };
 
 AppController.prototype.setText = function(text) {
-  saveToStorage(this.editFilename, text);
+  this.urlRegistry.register(this.editFilename, text);
 };
 
 app.config(function($routeProvider, $compileProvider) {
@@ -98,18 +102,20 @@ app.config(function($routeProvider, $compileProvider) {
    $compileProvider.imgSrcSanitizationWhitelist(/^\s*(https?|blob|data):/);
 });
 
-app.run(function($rootScope) {
+app.run(function($rootScope, urlRegistry) {
   if (loadFromStorage(lastPartOfUrl()) === undefined &&
       loadFromStorage('default.css') === undefined) {
-    saveToStorage(lastPartOfUrl(), angular.element(
+    urlRegistry.register(lastPartOfUrl(), angular.element(
         document.getElementById('default.html')).html());
-    saveToStorage('default.css', angular.element(
+    urlRegister.register('default.css', angular.element(
         document.getElementById('default.css')).html());
   }
 
   var unlisten = $rootScope.$watch('viewCtrl', function(viewCtrl) {
     if (viewCtrl) {
-      $rootScope.viewCtrl.setText(loadFromStorage(lastPartOfUrl()));
+      var textPromise = urlRegistry.contents(lastPartOfUrl());
+      textPromise.then(
+          function(text) { $rootScope.viewCtrl.setText(text); }.bind(this));
       unlisten();
     }
   });

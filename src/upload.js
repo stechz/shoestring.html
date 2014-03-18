@@ -2,7 +2,9 @@
 
 var module = angular.module('shoestring.upload', []);
 
-function CropController($scope) {
+function CropController($scope, urlRegistry) {
+  this.urlRegistry = urlRegistry;
+
   this.scope = $scope;
   this.size = 1;
   this.selection = {x: 0, y: 0, width: 0, height: 0};
@@ -129,11 +131,12 @@ CropController.prototype = {
       return;
     }
 
-    var self = this;
-    saveToLocalStorage(this.scope.file, f);
-    getURLFromFile(f, function(url) {
-      self.scope.$apply(function() { self.uploaded = url; });
-    });
+    this.register(f);
+  },
+
+  register: function(resource) {
+    var promise = this.urlRegistry.register(this.scope.file, resource);
+    promise.then(function(url) { this.uploaded = url; }.bind(this));
   },
 
   crop: function() {
@@ -147,13 +150,14 @@ CropController.prototype = {
 
     var context = canvas.getContext('2d');
     context.drawImage(this.getImg(),
-        this.selection.x / this.size, this.selection.y / this.size, canvas.width / this.size, canvas.height / this.size,
+        this.selection.x / this.size,
+        this.selection.y / this.size, canvas.width / this.size,
+        canvas.height / this.size,
         0, 0, canvas.width, canvas.height);
 
-    this.uploaded = canvas.toDataURL();
-    this.size = 1;
-
+    this.register(canvas);
     this.clearSelection();
+    this.size = 1;
   },
 
   revert: function() {
