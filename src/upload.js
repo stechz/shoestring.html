@@ -100,10 +100,12 @@ CropController.prototype = {
     var input = element.querySelector('input');
     input.addEventListener('change', this.fileSelect, false);
 
-    if (this.urlRegistry.has(this.scope.file)) {
-      var promise = this.urlRegistry.map(this.scope.file)
-      promise.then(function(url) { this.uploaded = url; }.bind(this));
-    }
+    var promise = this.urlRegistry.map(this.scope.file)
+    promise.then(function(url) {
+      if (url) {
+        this.uploaded = url;
+      }
+    }.bind(this));
   },
 
   zoom: function(percentage) {

@@ -105,15 +105,20 @@ app.config(function($routeProvider, $compileProvider) {
 });
 
 app.run(function($rootScope, urlRegistry) {
-  if (!urlRegistry.has(lastPartOfUrl())) {
-    urlRegistry.register(lastPartOfUrl(), angular.element(
-        document.getElementById('default.html')).html());
-  }
+  urlRegistry.map(lastPartOfUrl()).then(function(url) {
+    if (!url) {
+      urlRegistry.register(lastPartOfUrl(), angular.element(
+          document.getElementById('default.html')).html());
+    }
 
-  if (!urlRegistry.has('default.css')) {
-    urlRegistry.register('default.css', angular.element(
-        document.getElementById('default.css')).html());
-  }
+  });
+
+  urlRegistry.map('default.css').then(function(url) {
+    if (!url) {
+      urlRegistry.register('default.css', angular.element(
+          document.getElementById('default.css')).html());
+    }
+  });
 
   var unlisten = $rootScope.$watch('viewCtrl', function(viewCtrl) {
     if (viewCtrl) {

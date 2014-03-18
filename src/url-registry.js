@@ -5,12 +5,24 @@
 
 (function() {
 
-function UrlRegistry($q) {
+/**
+ * Keeps track of our sandboxed filesystem that serves up images, CSS, HTML,
+ * and even javascript. This always stores files in localStorage, but it's
+ * possible to register a proxy storage mechanism that saves files to a more
+ * permanent place.
+ *
+ * For more information about proxy storage, see UrlProvider.
+ */
+function UrlRegistry($q, storageImpl) {
   this.q_ = $q;
+  this.storageImpl_ = storageImpl;
 }
 
 UrlRegistry.prototype = {
-  /** Registers a new URL, given a resource like an img, canvas, text, etc. */
+  /**
+   * Registers a new sandbox URL.
+   * @param resource Can be a File, a canvas element, or a string.
+   */
   register: function(url, resource) {
     var promise;
     if (resource instanceof File) {
@@ -37,24 +49,52 @@ UrlRegistry.prototype = {
     return defer.promise;
   },
 
-  /** Returns true iff this URL is mapped. */
-  has: function(url) {
-    return !!loadFromStorage(url);
-  },
-
+  /** Fetches contents for a sandboxed URL. */
   contents: function(url) {
     return this.q_.when(loadFromStorage(url));
   },
 
+  /** Finds the canonical blob URL that stores a sandboxed resource.  */
   map: function(url) {
-    var defer = this.q_.defer();
-    var textBlob = getBlobForText(url, loadFromStorage(url));
-    getURLFromFile(textBlob, function(url) { defer.resolve(url); });
-    return defer.promise;
+    if (loadFromStorage(url)) {
+      var defer = this.q_.defer();
+      var textBlob = getBlobForText(url, loadFromStorage(url));
+      getURLFromFile(textBlob, function(url) { defer.resolve(url); });
+      return defer.promise;
+    } else {
+      return this.q_.when(undefined);
+    }
+  }
+};
+
+
+/** Configures UrlRegistry for alternative storage mechanisms. */
+function UrlRegistryProvider() {
+  this.storageImpl = null;
+}
+
+UrlRegistryProvider.prototype = {
+  /**
+   * Register an auxiliary storage mechanism for sandboxed filesystem. Examples
+   * could be: google drive storage, dropbox, or EC2.
+   *
+   * Once registered, there are two different methods that we store files.
+   * Which one is canonical?
+   *   1. if page has freshly loaded, fetch from aux.
+   *   2. after fresh page load, localStorage becomes canonical storage. Aux
+   *      will be notified if files change (like if the user is editing a page).
+   */
+  registerStorage: function(storageImpl) {
+    this.storageImpl = storageImpl;
+  },
+
+  /** Instantiate UrlRegistry. */
+  $get: function($injector) {
+    return $injector.instantiate(UrlRegistry, {storageImpl: this.storageImpl});
   }
 };
 
 var module = angular.module('shoestring.urlRegistry', []);
-module.service('urlRegistry', UrlRegistry);
+module.provider('urlRegistry', UrlRegistryProvider);
 
 })();

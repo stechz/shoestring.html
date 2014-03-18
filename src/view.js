@@ -28,54 +28,54 @@ Controller.prototype.setText = function(text) {
   var js = doc.querySelectorAll('script[src]');
   for (var i = 0; i < js.length; i++) {
     var src = js[i].getAttribute('src');
-    if (this.urlRegistry_.has(src)) {
-      promises.push(this.urlRegistry_.map(src).then(function(js, url) {
+    promises.push(this.urlRegistry_.map(src).then(function(js, url) {
+      if (url) {
         js.setAttribute('src', url);
-      }.bind(this, js[i])));
-    }
+      }
+    }.bind(this, js[i])));
   }
 
   var css = doc.querySelectorAll('link[href][rel=stylesheet]');
   for (var i = 0; i < css.length; i++) {
     var href = css[i].getAttribute('href');
-    if (this.urlRegistry_.has(href)) {
-      css[i].removeAttribute('href');
+    css[i].removeAttribute('href');
 
-      var urlPromise = this.urlRegistry_.contents(href).then(
-          function(cssElement, cssText) {
-        // Use replace to find all the URLs in the css text.
-        var urlPromises = {};
-        cssText.replace(/url\((.*)\)/g, function(all, url) {
-          if (this.urlRegistry_.has(url)) {
-            urlPromises[url] = this.urlRegistry_.map(url);
-          }
-        }.bind(this));
+    var urlPromise = this.urlRegistry_.contents(href).then(
+        function(cssElement, cssText) {
+      if (!cssText) {
+        return;
+      }
 
-        return this.q_.all(urlPromises).then(function(urls) {
-          // urls is a map from old URLs to new URLs.
-          var text = cssText.replace(/url\((.*)\)/g,
-              function(all, url) { return 'url(' + urls[url] + ')'; });
-          var url = URL.createObjectURL(new Blob([text]));
-          cssElement.setAttribute('href', url);
-        });
-      }.bind(this, css[i]));
+      // Use replace to find all the URLs in the css text.
+      var urlPromises = {};
+      cssText.replace(/url\((.*)\)/g, function(all, url) {
+        urlPromises[url] = this.urlRegistry_.map(url);
+      }.bind(this));
 
-      promises.push(urlPromise);
-    }
+      return this.q_.all(urlPromises).then(function(urls) {
+        // urls is a map from old URLs to new URLs.
+        var text = cssText.replace(/url\((.*)\)/g,
+            function(all, url) { return 'url(' + (urls[url] || url) + ')'; });
+        var url = URL.createObjectURL(new Blob([text]));
+        cssElement.setAttribute('href', url);
+      });
+    }.bind(this, css[i]));
+
+    promises.push(urlPromise);
   }
 
   var img = doc.querySelectorAll('img[src]');
   for (var i = 0; i < img.length; i++) {
     var src = img[i].getAttribute('src');
-    if (this.urlRegistry_.has(src)) {
-      img[i].removeAttribute('src');
+    img[i].removeAttribute('src');
 
-      var urlPromise = this.urlRegistry_.map(src).then(function(img, url) {
+    var urlPromise = this.urlRegistry_.map(src).then(function(img, url) {
+      if (url) {
         img.setAttribute('src', url);
-      }.bind(this, img[i]));
+      }
+    }.bind(this, img[i]));
 
-      promises.push(urlPromise);
-    }
+    promises.push(urlPromise);
   }
 
   var ngapp = doc.querySelector('[ng-app]');
