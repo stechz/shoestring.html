@@ -88,6 +88,7 @@ CropController.prototype = {
 
       angular.element(img.parentNode).css({
         'width': (img.width * ratio) + 'px',
+        'height': (img.height * ratio) + 'px',
         'overflow': 'hidden'
       });
     }
@@ -117,9 +118,7 @@ CropController.prototype = {
     }
   },
 
-  fileSelect: function(evt) {
-    var files = evt.target.files;
-    var f = files[0];
+  uploadImage: function(f) {
     if (!f) {
       return;
     }
@@ -130,6 +129,16 @@ CropController.prototype = {
     }
 
     this.register(f);
+  },
+
+  drop: function(event) {
+    this.uploadImage(event.dataTransfer.files[0]);
+  },
+
+  fileSelect: function(evt) {
+    var files = evt.target.files;
+    var f = files[0];
+    this.uploadImage(f);
   },
 
   register: function(resource) {

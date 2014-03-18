@@ -18,6 +18,8 @@ var app = angular.module('shoestring.app', [
   'shoestring.syntax.cssurl',
   'shoestring.syntax.img',
 
+  'draganddrop',
+
   'ngRoute'
 ]);
 

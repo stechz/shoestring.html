@@ -7,6 +7,8 @@
 <script src="lib/angular.js"></script>
 <script src="lib/angular-route.js"></script>
 
+<script src="lib/angular-draganddrop.js"></script>
+
 <script src="lib/codemirror-3.22/lib/codemirror.js"></script>
 <script src="lib/codemirror-3.22/mode/htmlmixed/htmlmixed.js"></script>
 <script src="lib/codemirror-3.22/mode/xml/xml.js"></script>
@@ -74,7 +76,9 @@ TODO, figure out how to properly hook up google drive to the editor.
 <script type="text/ng-template" id="upload.html">
   <div class="editor-upload">
     <div class="editor-fileinput"><input type="file"></div>
-    <div class="editor-drop" ng-if="!ctrl.uploaded">
+    <div class="editor-drop" drop="ctrl.drop($event)" drop-effect="copy"
+        drag-over-class="editor-drop-accept" drop-accept="true"
+        ng-if="!ctrl.uploaded">
       <div class="editor-drop-text">
         Drop an image here
       </div>
@@ -88,7 +92,9 @@ TODO, figure out how to properly hook up google drive to the editor.
       </button>
     <div class="editor-crop">
       <div class="editor-img-parent" ng-mousedown="ctrl.dragBegin($event)">
-        <svg style="position: absolute; z-index: 1;" width="100%" height="100%">
+        <svg ng-if="ctrl.uploaded"
+            style="position: absolute; z-index: 1;" width="100%" height="100%"
+            drop-accept="true" drop-effect="copy" drop="ctrl.drop($event)">
           <rect style="fill-opacity: 0; stroke: black"
                 ng-attr-x="{{ctrl.selection.x}}" ng-attr-y="{{ctrl.selection.y}}"
                 ng-attr-width="{{ctrl.selection.width}}"
