@@ -51,13 +51,12 @@ function saveToLocalStorage(name, arraybuffer, callback) {
   reader.readAsBinaryString(arraybuffer);
 }
 
-function getURLFromLocalStorage(name, callback) {
-  var str = loadFromStorage(name);
+function getBlobForText(name, str) {
   var arr = new Uint8Array(str.length);
   for (var i = 0; i < arr.length; i++) {
     arr[i] = str.charCodeAt(i);
   }
-  getURLFromFile(new Blob([arr], {type: guessMimeType(name)}), callback);
+  return new Blob([arr], {type: guessMimeType(name)});
 }
 
 function getURLFromFile(file, callback) {

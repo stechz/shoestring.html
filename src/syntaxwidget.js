@@ -47,7 +47,7 @@ SyntaxWidgetService.prototype.add = function(WidgetCons) {
       clear(cm);
 
       var widget = injector.instantiate(WidgetCons);
-      var cur = cm.getCursor()
+      var cur = cm.getCursor();
       var range = cm.getViewport();
       range.from = Math.min(range.from, cur.line);
       range.to = Math.max(cur.line + 1, range.to);

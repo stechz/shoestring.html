@@ -12,7 +12,7 @@ CssUrlLink.prototype.getHit = function(cm, cur, range) {
   tokenState.stopAtLineEnd();
 
   // Look for URL.
-  while (tokenState.next() && !tokenState.checkToken('string-2', 'url'));
+  while (tokenState.next() && !tokenState.checkToken('atom', 'url'));
 
   var hit = {from: {line: tokenState.pos.line, ch: tokenState.pos.ch - 4}};
 

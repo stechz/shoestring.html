@@ -25,7 +25,7 @@ UrlRegistry.prototype = {
       });
     } else if (typeof resource == 'string') {
       saveToStorage(url, resource);
-      promise = this.q_.when(resource);
+      promise = this.q_.when(getBlobForText(url, resource));
     }
 
     var defer = this.q_.defer();
@@ -48,7 +48,8 @@ UrlRegistry.prototype = {
 
   map: function(url) {
     var defer = this.q_.defer();
-    getURLFromLocalStorage(url, function(url) { defer.resolve(url); });
+    var textBlob = getBlobForText(url, loadFromStorage(url));
+    getURLFromFile(textBlob, function(url) { defer.resolve(url); });
     return defer.promise;
   }
 };

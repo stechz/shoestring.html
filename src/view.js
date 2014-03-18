@@ -81,7 +81,7 @@ Controller.prototype.setText = function(text) {
   var ngapp = doc.querySelector('[ng-app]');
   if (ngapp) {
     angular.element(doc.head).append(
-        '<script type="text/javascript" src="angular.js"></script>');
+        '<script type="text/javascript" src="lib/angular.js"></script>');
   }
 
   this.q_.all(promises).then(function() {

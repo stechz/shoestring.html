@@ -99,11 +99,9 @@ CropController.prototype = {
     var input = element.querySelector('input');
     input.addEventListener('change', this.fileSelect, false);
 
-    if (loadFromStorage()) {
-      var self = this;
-      getURLFromLocalStorage(this.scope.file, function(url) {
-        self.scope.$apply(function() { self.uploaded = url; });
-      });
+    if (this.urlRegistry.has(this.scope.file)) {
+      var promise = this.urlRegistry.map(this.scope.file)
+      promise.then(function(url) { this.uploaded = url; }.bind(this));
     }
   },
 
