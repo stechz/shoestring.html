@@ -21,7 +21,7 @@ var app = angular.module('shoestring.app', [
   'ngRoute'
 ]);
 
-var NoEditController = function($scope, $rootScope) {
+var NoEditController = function($scope) {
   this.code = '';
 
   var iframe = angular.element(
@@ -103,11 +103,13 @@ app.config(function($routeProvider, $compileProvider) {
 });
 
 app.run(function($rootScope, urlRegistry) {
-  if (loadFromStorage(lastPartOfUrl()) === undefined &&
-      loadFromStorage('default.css') === undefined) {
+  if (!urlRegistry.has(lastPartOfUrl())) {
     urlRegistry.register(lastPartOfUrl(), angular.element(
         document.getElementById('default.html')).html());
-    urlRegister.register('default.css', angular.element(
+  }
+
+  if (!urlRegistry.has('default.css')) {
+    urlRegistry.register('default.css', angular.element(
         document.getElementById('default.css')).html());
   }
 
