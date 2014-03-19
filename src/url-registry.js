@@ -77,6 +77,9 @@ UrlRegistry.prototype = {
 
   /** Finds the canonical blob URL that stores a sandboxed resource.  */
   map: function(url) {
+    // TODO: map should probably only change the URL when something becomes
+    // dirty.
+
     if (this.useAux(url)) {
       return this.storageImpl_.map(url);
     }

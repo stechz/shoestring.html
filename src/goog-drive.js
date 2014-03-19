@@ -177,15 +177,17 @@ function insertFile(name, type, blob, parentFolderId, callback) {
  * Saves a file into the root google drive directory that contains our sandbox.
  * If there is no root directory, make one.
  */
-function gapiSaveToStorage(key, val) {
+function gapiSaveToStorage(key, val, callback) {
+  callback = callback ? callback : function() {};
+
   if (storageGapiRoot) {
     // We have a root directory to store our files in.
 
     var gapi = location.pathname + '.gapi:' + key;
+
     gapiInit(function() {
       if (localStorage[gapi]) {
-        window.updateFile(key, guessMimeType(key), new Blob([val]),
-            localStorage[gapi]);
+        window.updateFile(key, guessMimeType(key), new Blob([val]), callback);
       } else {
         window.insertFile(key, guessMimeType(key), new Blob([val]),
             storageGapiRoot, function(file) {
@@ -195,6 +197,9 @@ function gapiSaveToStorage(key, val) {
     });
   } else {
     // Make up a root directory to store our files in, and try again.
+
+    var callbacksLeft = 1;
+    // TODO. implement callbacks.
 
     var storageGapiRootName = location.toString().replace(/#.*/, '');
 
@@ -206,5 +211,40 @@ function gapiSaveToStorage(key, val) {
     });
   }
 }
+
+
+/** Aux storage implmeentation for urlRegistry. */
+function GoogDriveStorage($q) {
+  this.q_ = $q;
+}
+
+GoogDriveStorage.prototype = {
+  /** Saves data to goog drive under a root folder. */
+  register: function(url, data) {
+    var defer = this.q_.defer();
+    gapiSaveToStorage(url, data);
+    return defer.promise;
+  },
+
+  contents: function(url) {
+    // TODO. This is a stub.
+    return loadFromStorage(url);
+  },
+
+  map: function() {
+    // TODO. This is a stub.
+    var defer = this.q_.defer();
+    var textBlob = getBlobForText(url, loadFromStorage(url));
+    getURLFromFile(textBlob, function(url) { defer.resolve(url); });
+    return defer.promise;
+  }
+};
+
+
+var module = angular.module('shoestring.googDrive', []);
+
+module.config(function(urlRegistryProvider, $injector) {
+  urlRegistryProvider.registerStorage($injector.instantiate(GoogDriveStorage));
+});
 
 })();
