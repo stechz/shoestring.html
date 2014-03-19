@@ -16,15 +16,32 @@
 function UrlRegistry($q, storageImpl) {
   this.q_ = $q;
   this.storageImpl_ = storageImpl;
+  this.localDict_ = {};
 }
 
 UrlRegistry.prototype = {
+  /** Returns true iff we should request something using aux storage. */
+  useAux: function(url) {
+    var inLocalStorage = loadFromStorage(url) !== undefined;
+    var auxHasBeenFetchedOnce = url in this.localDict_;
+    if (this.storageImpl_) {
+      this.localDict_[url] = true;
+    }
+    return this.storageImpl_ && (!inLocalStorage || !auxHasBeenFetchedOnce);
+  },
+
   /**
    * Registers a new sandbox URL.
    * @param resource Can be a File, a canvas element, or a string.
    */
   register: function(url, resource) {
     var promise;
+
+    if (this.storageImpl_) {
+      this.localDict_[url] = true;
+      this.storageImpl_.register(url, resource);
+    }
+
     if (resource instanceof File) {
       saveToLocalStorage(url, resource);
       promise = this.q_.when(resource);
@@ -38,6 +55,8 @@ UrlRegistry.prototype = {
     } else if (typeof resource == 'string') {
       saveToStorage(url, resource);
       promise = this.q_.when(getBlobForText(url, resource));
+    } else {
+      throw new Error('unrecognized object passed to register');
     }
 
     var defer = this.q_.defer();
@@ -46,24 +65,26 @@ UrlRegistry.prototype = {
         defer.resolve(url);
       });
     });
+
     return defer.promise;
   },
 
   /** Fetches contents for a sandboxed URL. */
   contents: function(url) {
-    return this.q_.when(loadFromStorage(url));
+    return this.useAux(url) ?
+        this.storageImpl_.contents(url) : this.q_.when(loadFromStorage(url));
   },
 
   /** Finds the canonical blob URL that stores a sandboxed resource.  */
   map: function(url) {
-    if (loadFromStorage(url)) {
-      var defer = this.q_.defer();
-      var textBlob = getBlobForText(url, loadFromStorage(url));
-      getURLFromFile(textBlob, function(url) { defer.resolve(url); });
-      return defer.promise;
-    } else {
-      return this.q_.when(undefined);
+    if (this.useAux(url)) {
+      return this.storageImpl_.map(url);
     }
+
+    var defer = this.q_.defer();
+    var textBlob = getBlobForText(url, loadFromStorage(url));
+    getURLFromFile(textBlob, function(url) { defer.resolve(url); });
+    return defer.promise;
   }
 };
 
