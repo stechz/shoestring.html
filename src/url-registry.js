@@ -24,9 +24,6 @@ UrlRegistry.prototype = {
   useAux: function(url) {
     var inLocalStorage = loadFromStorage(url) !== undefined;
     var auxHasBeenFetchedOnce = url in this.localDict_;
-    if (this.storageImpl_) {
-      this.localDict_[url] = true;
-    }
     return this.storageImpl_ && (!inLocalStorage || !auxHasBeenFetchedOnce);
   },
 
@@ -69,32 +66,50 @@ UrlRegistry.prototype = {
     return defer.promise;
   },
 
-  /** Fetches contents for a sandboxed URL. */
-  contents: function(url) {
-    return this.useAux(url) ?
-        this.storageImpl_.contents(url) : this.q_.when(loadFromStorage(url));
+  /** Helper function that fetches content from localStorage. */
+  contentsLocal_: function(url) {
+    return this.q_.when(loadFromStorage(url));
   },
 
-  /** Finds the canonical blob URL that stores a sandboxed resource.  */
-  map: function(url) {
-    // TODO: map should probably only change the URL when something becomes
-    // dirty.
-
+  /** Fetches contents for a sandboxed URL. */
+  contents: function(url) {
     if (this.useAux(url)) {
-      return this.storageImpl_.map(url);
+      return this.storageImpl_.contents(url).then(function(contents) {
+        return (contents === undefined) ? this.contentsLocal_(url) : contents;
+      }.bind(this));
+    } else {
+      return this.contentsLocal_(url);
+    }
+  },
+
+  /** Helper function that maps a sandbox URL to localstorage blob. */
+  mapLocal_: function(url) {
+    if (!loadFromStorage(url)) {
+      return this.q_.when(null);
     }
 
     var defer = this.q_.defer();
     var textBlob = getBlobForText(url, loadFromStorage(url));
     getURLFromFile(textBlob, function(url) { defer.resolve(url); });
     return defer.promise;
+  },
+
+  /** Finds the canonical blob URL that stores a sandboxed resource.  */
+  map: function(url) {
+    if (this.useAux(url)) {
+      return this.storageImpl_.map(url).then(function(newUrl) {
+        return newUrl ? newUrl : this.mapLocal_(url);
+      }.bind(this));
+    } else {
+      return this.mapLocal_(url);
+    }
   }
 };
 
 
 /** Configures UrlRegistry for alternative storage mechanisms. */
 function UrlRegistryProvider() {
-  this.storageImpl = null;
+  this.storageImplFactory = null;
 }
 
 UrlRegistryProvider.prototype = {
@@ -108,13 +123,17 @@ UrlRegistryProvider.prototype = {
    *   2. after fresh page load, localStorage becomes canonical storage. Aux
    *      will be notified if files change (like if the user is editing a page).
    */
-  registerStorage: function(storageImpl) {
-    this.storageImpl = storageImpl;
+  registerStorage: function(storageImplFactory) {
+    this.storageImplFactory = storageImplFactory;
   },
 
   /** Instantiate UrlRegistry. */
   $get: function($injector) {
-    return $injector.instantiate(UrlRegistry, {storageImpl: this.storageImpl});
+    var provides = {storageImpl: null};
+    if (this.storageImplFactory) {
+      provides.storageImpl = $injector.instantiate(this.storageImplFactory);
+    }
+    return $injector.instantiate(UrlRegistry, provides);
   }
 };
 

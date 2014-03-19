@@ -4,7 +4,7 @@ var CLIENT_JS = 'https://apis.google.com/js/client.js?' +
                 'onload=googDriveInitScript';
 
 var CLIENT_ID;
-if (location.host == 'localhost') {
+if (location.host == 'localhost:8080') {
   CLIENT_ID = '705423460585-n34vpp4vue8mupcv84aliep0kiu7qfq2.apps.googleusercontent.com';
 } else if (location.host == 'optimum-airfoil-463.appspot.com') {
   CLIENT_ID = '705423460585-3ne5aiq1fend9ch9qqnic6llr06gtp3g.apps.googleusercontent.com';
@@ -20,8 +20,6 @@ var callbacks = [];
 
 var loaded = false;
 
-var storageGapiRoot = '';
-
 if (document.readyState == 'loading' && location.protocol != 'file:') {
   document.write('<script src="' + CLIENT_JS + '"></script>');
 }
@@ -36,12 +34,18 @@ function initScript() {
 window.googDriveInitScript = initScript;
 
 
+/** Gets the gapi root ID. */
+function gapiRoot(val) {
+  if (val) {
+    localStorage[location.pathname + '.gapi'] = val;
+    return val;
+  } else {
+    return localStorage[location.pathname + '.gapi'];
+  }
+}
+
 /** Callback is called after gapi is initialized. */
 function gapiInit(callback) {
-  if ((location.pathname + '.gapi') in localStorage) {
-    storageGapiRoot = localStorage[location.pathname + '.gapi'];
-  }
-
   if (loaded) {
     callback();
   } else {
@@ -82,6 +86,10 @@ function handleAuthResult(authResult) {
 
 /** Helper function to either update a file or insert a file. */
 function uploadFileWithMetadata(metadata, binaryData, id, callback) {
+  if (typeof id == 'function') {
+    // TODO: this should never happen but there's a bug
+    debugger;
+  }
   var boundary = '-------314159265358979323846';
   var delimiter = "\r\n--" + boundary + "\r\n";
   var close_delim = "\r\n--" + boundary + "--";
@@ -113,6 +121,14 @@ function uploadFileWithMetadata(metadata, binaryData, id, callback) {
       },
       'body': multipartRequestBody});
 
+  request.execute(callback);
+}
+
+
+/** Gets contents for goog drive file. */
+function getFileContents(id, callback) {
+  var request = gapi.client.request(
+      {'path': '/drive/v2/files/' + id, 'method': 'GET'});
   request.execute(callback);
 }
 
@@ -175,39 +191,55 @@ function insertFile(name, type, blob, parentFolderId, callback) {
 
 /**
  * Saves a file into the root google drive directory that contains our sandbox.
- * If there is no root directory, make one.
+ * If there is no root directory, make one, and upload all the files from the
+ * sandbox to it.
  */
 function gapiSaveToStorage(key, val, callback) {
   callback = callback ? callback : function() {};
 
-  if (storageGapiRoot) {
+  if (gapiRoot()) {
     // We have a root directory to store our files in.
+
+    if (val === null) {
+      throw new Exception('cannot save null value to gdrive');
+    }
 
     var gapi = location.pathname + '.gapi:' + key;
 
-    gapiInit(function() {
-      if (localStorage[gapi]) {
-        window.updateFile(key, guessMimeType(key), new Blob([val]), callback);
-      } else {
-        window.insertFile(key, guessMimeType(key), new Blob([val]),
-            storageGapiRoot, function(file) {
-          localStorage[gapi] = file.id;
-        });
-      }
-    });
+    if (localStorage[gapi]) {
+      updateFile(key, guessMimeType(key), new Blob([val]), key, callback);
+    } else {
+      insertFile(key, guessMimeType(key), new Blob([val]), gapiRoot(),
+          function(file) {
+        localStorage[gapi] = file.id;
+        callback(file);
+      });
+    }
+
   } else {
     // Make up a root directory to store our files in, and try again.
 
-    var callbacksLeft = 1;
-    // TODO. implement callbacks.
-
     var storageGapiRootName = location.toString().replace(/#.*/, '');
 
-    insertFile(storageGapiRootName, null, null, null, function(file) {
+    insertFile(storageGapiRootName + '/', null, null, null, function(file) {
+      // Now we have a root directory!
+      gapiRoot(file.id);
+
+      // Iterate through all the files in our sandbox and upload them to
+      // drive. This isn't important to our callback, so no need to keep track
+      // of them.
       var files = listFiles();
       for (var i = 0; i < files.length; i++) {
+        if (files[i] == key) {
+          // This is the original file we want to save. We'll take care of it
+          // with another call to gapiSaveToStorage (see below).
+          continue;
+        }
         gapiSaveToStorage(files[i], loadFromStorage(files[i]));
       }
+
+      // Save the file we're here to save.
+      gapiSaveToStorage(key, val, callback);
     });
   }
 }
@@ -222,21 +254,42 @@ GoogDriveStorage.prototype = {
   /** Saves data to goog drive under a root folder. */
   register: function(url, data) {
     var defer = this.q_.defer();
-    gapiSaveToStorage(url, data);
+    gapiInit(function() {
+      gapiSaveToStorage(url, data, function(file) {
+        defer.resolve('https://googledrive.com/host/' + file.id);
+      });
+    });
     return defer.promise;
   },
 
   contents: function(url) {
-    // TODO. This is a stub.
-    return loadFromStorage(url);
+    var gapi = location.pathname + '.gapi:' + url;
+    if (localStorage[gapi]) {
+      var defer = this.q_.defer();
+      gapiInit(function() {
+        getFileContents(localStorage[gapi], function(file) {
+          defer.resolve(file.contents);
+        });
+      });
+      return defer.promise;
+    } else {
+      return this.q_.when(undefined);
+    }
   },
 
-  map: function() {
-    // TODO. This is a stub.
-    var defer = this.q_.defer();
-    var textBlob = getBlobForText(url, loadFromStorage(url));
-    getURLFromFile(textBlob, function(url) { defer.resolve(url); });
-    return defer.promise;
+  map: function(url) {
+    var gapi = location.pathname + '.gapi:' + url;
+    if (localStorage[gapi]) {
+      var defer = this.q_.defer();
+      gapiInit(function() {
+        getFileContents(localStorage[gapi], function(file) {
+          defer.resolve(file.selfLink);
+        });
+      });
+      return defer.promise;
+    } else {
+      return this.q_.when(undefined);
+    }
   }
 };
 
@@ -244,7 +297,7 @@ GoogDriveStorage.prototype = {
 var module = angular.module('shoestring.googDrive', []);
 
 module.config(function(urlRegistryProvider, $injector) {
-  urlRegistryProvider.registerStorage($injector.instantiate(GoogDriveStorage));
+  urlRegistryProvider.registerStorage(GoogDriveStorage);
 });
 
 })();
