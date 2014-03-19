@@ -9,6 +9,8 @@
 
 <script src="lib/angular-draganddrop.js"></script>
 
+<script src="lib/polyfill/canvas-to-blob.js"></script>
+
 <script src="lib/codemirror-3.22/lib/codemirror.js"></script>
 <script src="lib/codemirror-3.22/mode/htmlmixed/htmlmixed.js"></script>
 <script src="lib/codemirror-3.22/mode/xml/xml.js"></script>
@@ -20,26 +22,18 @@
 <script src="src/editor.js"></script>
 <script src="src/fileutil.js"></script>
 <script src="src/syntaxwidget.js"></script>
-<script src="src/url-registry.js"></script>
 <script src="src/tab.js"></script>
 <script src="src/tokenstate.js"></script>
-<script src="src/view.js"></script>
 <script src="src/upload.js"></script>
+<script src="src/url-registry.js"></script>
+<script src="src/view.js"></script>
 
 <script src="src/syntax/css.js"></script>
 <script src="src/syntax/script.js"></script>
 <script src="src/syntax/cssurl.js"></script>
 <script src="src/syntax/img.js"></script>
 
-<script src="lib/polyfill/canvas-to-blob.js"></script>
-
-<!--
-TODO, figure out how to properly hook up google drive to the editor.
-
 <script src="src/goog-drive.js"></script>
-<script src="https://apis.google.com/js/client.js?onload=gapiInitScript">
-</script>
--->
 
 <script type="text/ng-template" id="app.html">
   <div class="tabbed-editor">

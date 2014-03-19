@@ -1,5 +1,8 @@
 (function() {
 
+var CLIENT_JS = 'https://apis.google.com/js/client.js?' +
+                'onload=googDriveInitScript';
+
 var CLIENT_ID;
 if (location.host == 'localhost') {
   CLIENT_ID = '705423460585-n34vpp4vue8mupcv84aliep0kiu7qfq2.apps.googleusercontent.com';
@@ -14,42 +17,51 @@ var SCOPES = [
   ];
 
 var callbacks = [];
+
 var loaded = false;
 
-/**
- * Called when the client library is loaded.
- */
-window.gapiInit = function(callback) {
+var storageGapiRoot = '';
+
+if (document.readyState == 'loading' && location.protocol != 'file:') {
+  document.write('<script src="' + CLIENT_JS + '"></script>');
+}
+
+
+/** Callback for after page is loaded when gapi is in use. */
+function initScript() {
+  if (callbacks.length) {
+    checkAuth();
+  }
+}
+window.googDriveInitScript = initScript;
+
+
+/** Callback is called after gapi is initialized. */
+function gapiInit(callback) {
+  if ((location.pathname + '.gapi') in localStorage) {
+    storageGapiRoot = localStorage[location.pathname + '.gapi'];
+  }
+
   if (loaded) {
     callback();
   } else {
     callbacks.push(callback);
     checkAuth();
   }
-};
+}
 
-window.gapiInitScript = function() {
-  if (callbacks.length) {
-    checkAuth();
-  }
-};
 
-/**
- * Check if the current user has authorized the application.
- */
-window.checkAuth = function() {
+/** Check if the current user has authorized the application. */
+function checkAuth() {
   if (window.gapi && window.gapi.auth) {
     gapi.auth.authorize(
         {'client_id': CLIENT_ID, 'scope': SCOPES.join(' '), 'immediate': true},
         handleAuthResult);
   }
-};
+}
 
-/**
- * Called when authorization server replies.
- *
- * @param {Object} authResult Authorization result.
- */
+
+/** Called when authorization server replies. */
 function handleAuthResult(authResult) {
   if (authResult) {
     gapi.client.load('drive', 'v2', function() {
@@ -67,6 +79,8 @@ function handleAuthResult(authResult) {
   }
 }
 
+
+/** Helper function to either update a file or insert a file. */
 function uploadFileWithMetadata(metadata, binaryData, id, callback) {
   var boundary = '-------314159265358979323846';
   var delimiter = "\r\n--" + boundary + "\r\n";
@@ -102,7 +116,9 @@ function uploadFileWithMetadata(metadata, binaryData, id, callback) {
   request.execute(callback);
 }
 
-window.updateFile = function(name, type, blob, id, callback) {
+
+/** Updates file with new data. */
+function updateFile(name, type, blob, id, callback) {
   var reader = new FileReader();
   reader.readAsBinaryString(blob);
   reader.onload = function(e) {
@@ -110,12 +126,11 @@ window.updateFile = function(name, type, blob, id, callback) {
     var metadata = {'title': name, 'mimeType': contentType};
     uploadFileWithMetadata(metadata, reader.result, id, callback);
   };
-};
+}
 
-/**
- * Insert new file.
- */
-window.insertFile = function(name, type, blob, parentFolderId, callback) {
+
+/** Insert new file. */
+function insertFile(name, type, blob, parentFolderId, callback) {
   var foldersArray = name.split('/');
   var filename = foldersArray.pop();
 
@@ -155,27 +170,17 @@ window.insertFile = function(name, type, blob, parentFolderId, callback) {
       callback(file);
     }
   })();
-};
-
-})();
-
-var storageGapiRoot = '';
-
-if ((location.pathname + '.gapi') in localStorage) {
-  storageGapiRoot = localStorage[location.pathname + '.gapi'];
 }
 
-function getGapiRoot() {
-  return localStorage[location.pathname + '.gapi'];
-}
 
-function setGapiRoot(root) {
-  storageGapiRoot = root;
-  localStorage[location.pathname + '.gapi'] = root;
-}
-
+/**
+ * Saves a file into the root google drive directory that contains our sandbox.
+ * If there is no root directory, make one.
+ */
 function gapiSaveToStorage(key, val) {
   if (storageGapiRoot) {
+    // We have a root directory to store our files in.
+
     var gapi = location.pathname + '.gapi:' + key;
     gapiInit(function() {
       if (localStorage[gapi]) {
@@ -188,16 +193,18 @@ function gapiSaveToStorage(key, val) {
         });
       }
     });
+  } else {
+    // Make up a root directory to store our files in, and try again.
+
+    var storageGapiRootName = location.toString().replace(/#.*/, '');
+
+    insertFile(storageGapiRootName, null, null, null, function(file) {
+      var files = listFiles();
+      for (var i = 0; i < files.length; i++) {
+        gapiSaveToStorage(files[i], loadFromStorage(files[i]));
+      }
+    });
   }
 }
 
-function saveShoestringHtml(callback) {
-  gapiInit(function() {
-    insertFile('shoestring.html/', null, null, null, function(file) {
-      callback('shoestring.html', file.id);
-      for (var i = 0; i < files.length; i++) {
-        saveToStorage(files[i], loadFromStorage(files[i]));
-      }
-    });
-  });
-}
+})();
