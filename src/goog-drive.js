@@ -222,6 +222,78 @@ function waitForGapiRoot(callback) {
 
 
 /**
+ * Responsible for ensuring that there aren't race conditions for saving a
+ * file onto google drive. Only one insert or update operation should be
+ * executing at any time.
+ */
+function FileUploadManager(key) {
+  if (!gapiRoot()) {
+    throw new Error('gapi root has not been set');
+  }
+
+  this.valsAndCallbacks = [];
+}
+
+FileUploadManager.prototype = {
+  /** Gets the key for localStorage, whose value is the ID of the file. */
+  localStorageKey: function() {
+    return location.pathname + '.gapi:' + key;
+  },
+
+  /** Gets the google drive ID for this file. */
+  id: function() {
+    return localStorage[this.localStorageKey()];
+  },
+
+  /** Tries to create a new file and stores the ID. */
+  insertNext_: function() {
+    if (this.id()) {
+      throw new Error('this file already exists');
+    }
+
+    var val = this.valsAndCallbacks[0]['val'];
+    var callback = this.valsAndCallbacks[0]['callback'];
+
+    var mimeType = guessMimeType(key);
+    insertFile(key, mimeType, new Blob([val]), gapiRoot(), function(file) {
+      localStorage[this.localStorageKey()] = file.id;
+      if (callback) {
+        callback(file);
+      }
+    });
+  },
+
+  /** Tries to update this file, which should already exist. */
+  updateNext_: function() {
+    if (!this.id()) {
+      throw new Error('no id associated with this file');
+    }
+
+    var val = this.valsAndCallbacks[0]['val'];
+    var callback = this.valsAndCallbacks[0]['callback'];
+
+    updateFile(key, guessMimeType(key), new Blob([val]), key, callback);
+  },
+
+  /**
+   * Saves the file based on its key name into google drive. Ensures that
+   * multiple saves aren't occurring at the same time.
+   */
+  save: function(val) {
+    this.valsAndCallbacks.push(val);
+
+    if (this.valsAndCallbacks.length == 1) {
+      if (this.id()) {
+        this.updateNext_();
+      } else {
+        this.insertNext_();
+      }
+    }
+  }
+};
+
+
+/**
  * Saves a file into the root google drive directory that contains our sandbox.
  * If there is no root directory, make one, and upload all the files from the
  * sandbox to it.
