@@ -86,10 +86,6 @@ function handleAuthResult(authResult) {
 
 /** Helper function to either update a file or insert a file. */
 function uploadFileWithMetadata(metadata, binaryData, id, callback) {
-  if (typeof id == 'function') {
-    // TODO: this should never happen but there's a bug
-    debugger;
-  }
   var boundary = '-------314159265358979323846';
   var delimiter = "\r\n--" + boundary + "\r\n";
   var close_delim = "\r\n--" + boundary + "--";
@@ -245,7 +241,14 @@ function gapiSaveToStorage(key, val, callback) {
 }
 
 
-/** Aux storage implmeentation for urlRegistry. */
+/**
+ * Aux storage implmeentation for urlRegistry. For some information about
+ * sandboxed files and how they are handled, please see urlRegistry.
+ *
+ * GoogDriveStorage should be called by default to find contents and mapped
+ * URLs. If a new resource is created with register(), GoogDriveStorage is
+ * informed but no longer will be called when we need a URL.
+ */
 function GoogDriveStorage($q) {
   this.q_ = $q;
 }
@@ -262,6 +265,7 @@ GoogDriveStorage.prototype = {
     return defer.promise;
   },
 
+  /** Fetches contents for sandboxed url. */
   contents: function(url) {
     var gapi = location.pathname + '.gapi:' + url;
     if (localStorage[gapi]) {
@@ -277,6 +281,7 @@ GoogDriveStorage.prototype = {
     }
   },
 
+  /** Get the URL for the sandboxed url. */
   map: function(url) {
     var gapi = location.pathname + '.gapi:' + url;
     if (localStorage[gapi]) {
@@ -294,7 +299,9 @@ GoogDriveStorage.prototype = {
 };
 
 
-var module = angular.module('shoestring.googDrive', []);
+var module = angular.module('shoestring.googDrive', [
+  'shoestring.urlRegistry'
+]);
 
 module.config(function(urlRegistryProvider, $injector) {
   urlRegistryProvider.registerStorage(GoogDriveStorage);
