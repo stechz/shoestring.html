@@ -8,12 +8,15 @@ describe('url registry', function() {
 
     module(function(urlRegistryProvider) {
       auxSpy = jasmine.createSpyObj('storage', ['contents', 'map', 'register']);
-      urlRegistryProvider.registerStorage(auxSpy);
+      urlRegistryProvider.registerStorage(function() { return auxSpy });
     });
 
     inject(function(_urlRegistry_, $q) {
       urlRegistry = _urlRegistry_;
       q = $q;
+
+      auxSpy.contents.and.returnValue($q.when('some contents'));
+      auxSpy.map.and.returnValue($q.when('mappedurl://'));
     });
   });
 
@@ -26,25 +29,26 @@ describe('url registry', function() {
     expect(auxSpy.map).toHaveBeenCalledWith('urlregistryspec/test.txt');
   });
 
-  it('should not call aux storage if file is in local storage', function() {
+  it('should call aux storage if file has not changed', function() {
     spyOn(window, 'loadFromStorage');
     loadFromStorage.and.returnValue(1);
 
-    // First time, it should fetch from aux. All subsequent fetches should be
-    // from local storage.
-    urlRegistry.contents('urlregistryspec/test.txt');
-    auxSpy.contents.calls.reset();
-
-    // Should be from local storage.
     var promise = urlRegistry.contents('urlregistryspec/test.txt');
-    expect(auxSpy.contents).not.toHaveBeenCalled();
+    expect(auxSpy.contents).toHaveBeenCalledWith('urlregistryspec/test.txt');
 
-    // Should be from local storage.
     var promise = urlRegistry.map('urlregistryspec/test.txt');
-    expect(auxSpy.map).not.toHaveBeenCalled();
+    expect(auxSpy.map).toHaveBeenCalledWith('urlregistryspec/test.txt');
   });
 
-  it('should inform storage when file changes', function() {
+  it('should call local storage if file has changed', function() {
+    urlRegistry.register('urlregistryspec/test.txt', 'some stuff');
+
+    var promise = urlRegistry.contents('urlregistryspec/test.txt');
+    expect(auxSpy.contents).not.toHaveBeenCalledWith(
+        'urlregistryspec/test.txt');
+  });
+
+  it('should inform aux storage when file changes', function() {
     urlRegistry.register('urlregistryspec/test.txt', '12345');
     expect(auxSpy.register).toHaveBeenCalledWith(
         'urlregistryspec/test.txt', '12345');
