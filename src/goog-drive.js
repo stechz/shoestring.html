@@ -231,13 +231,14 @@ function FileUploadManager(key) {
     throw new Error('gapi root has not been set');
   }
 
+  this.key = key;
   this.valsAndCallbacks = [];
 }
 
 FileUploadManager.prototype = {
   /** Gets the key for localStorage, whose value is the ID of the file. */
   localStorageKey: function() {
-    return location.pathname + '.gapi:' + key;
+    return location.pathname + '.gapi:' + this.key;
   },
 
   /** Gets the google drive ID for this file. */
@@ -251,8 +252,9 @@ FileUploadManager.prototype = {
       throw new Error('this file already exists');
     }
 
-    var val = this.valsAndCallbacks[0]['val'];
-    var callback = this.valsAndCallbacks[0]['callback'];
+    var key = this.key;
+    var val = this.valsAndCallbacks[0].val;
+    var callback = this.valsAndCallbacks[0].callback;
 
     var mimeType = guessMimeType(key);
     insertFile(key, mimeType, new Blob([val]), gapiRoot(), function(file) {
@@ -260,7 +262,7 @@ FileUploadManager.prototype = {
       if (callback) {
         callback(file);
       }
-    });
+    }.bind(this));
   },
 
   /** Tries to update this file, which should already exist. */
@@ -269,6 +271,7 @@ FileUploadManager.prototype = {
       throw new Error('no id associated with this file');
     }
 
+    var key = this.key;
     var val = this.valsAndCallbacks[0]['val'];
     var callback = this.valsAndCallbacks[0]['callback'];
 
@@ -276,11 +279,15 @@ FileUploadManager.prototype = {
   },
 
   /**
-   * Saves the file based on its key name into google drive. Ensures that
-   * multiple saves aren't occurring at the same time.
+   * Saves the file based on its key name into our google drive directory.
+   * Ensures that multiple saves aren't occurring at the same time.
    */
-  save: function(val) {
-    this.valsAndCallbacks.push(val);
+  save: function(val, callback) {
+    if (val === null) {
+      throw new Exception('cannot save null value to gdrive');
+    }
+
+    this.valsAndCallbacks.push({val: val, callback: callback});
 
     if (this.valsAndCallbacks.length == 1) {
       if (this.id()) {
@@ -294,35 +301,6 @@ FileUploadManager.prototype = {
 
 
 /**
- * Saves a file into the root google drive directory that contains our sandbox.
- * If there is no root directory, make one, and upload all the files from the
- * sandbox to it.
- */
-function gapiSaveToStorage(key, val, callback) {
-  if (val === null) {
-    throw new Exception('cannot save null value to gdrive');
-  }
-
-  callback = callback ? callback : function() {};
-
-  waitForGapiRoot(function() {
-    console.log('save to storage', key, gapiRoot());
-    var gapi = location.pathname + '.gapi:' + key;
-
-    if (localStorage[gapi]) {
-      updateFile(key, guessMimeType(key), new Blob([val]), key, callback);
-    } else {
-      insertFile(key, guessMimeType(key), new Blob([val]), gapiRoot(),
-          function(file) {
-        localStorage[gapi] = file.id;
-        callback(file);
-      });
-    }
-  });
-}
-
-
-/**
  * Aux storage implmeentation for urlRegistry. For some information about
  * sandboxed files and how they are handled, please see urlRegistry.
  *
@@ -332,17 +310,29 @@ function gapiSaveToStorage(key, val, callback) {
  */
 function GoogDriveStorage($q) {
   this.q_ = $q;
+  this.fileUploadManagers_ = {};
 }
 
 GoogDriveStorage.prototype = {
   /** Saves data to goog drive under a root folder. */
   register: function(url, data) {
     var defer = this.q_.defer();
+
     gapiInit(function() {
-      gapiSaveToStorage(url, data, function(file) {
-        defer.resolve('https://googledrive.com/host/' + file.id);
-      });
-    });
+      waitForGapiRoot(function() {
+        // Look up the upload manager for this sandbox url.
+        var fileUploadManager = this.fileUploadManagers_[url];
+        if (!fileUploadManager) {
+          fileUploadManager = new FileUploadManager(url);
+          this.fileUploadManagers_[url] = fileUploadManager;
+        }
+
+        fileUploadManager.save(data, function(file) {
+          defer.resolve('https://googledrive.com/host/' + file.id);
+        });
+      }.bind(this));
+    }.bind(this));
+
     return defer.promise;
   },
 
