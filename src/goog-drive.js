@@ -262,6 +262,7 @@ FileUploadManager.prototype = {
       if (callback) {
         callback(file);
       }
+      this.continueQueue_();
     }.bind(this));
   },
 
@@ -275,7 +276,18 @@ FileUploadManager.prototype = {
     var val = this.valsAndCallbacks[0]['val'];
     var callback = this.valsAndCallbacks[0]['callback'];
 
-    updateFile(key, guessMimeType(key), new Blob([val]), key, callback);
+    var mimeType = guessMimeType(key);
+    updateFile(key, mimeType, new Blob([val]), this.id(), function(file) {
+      this.continueQueue_();
+    }.bind(this));
+  },
+
+  /** Does the remaining file operations. */
+  continueQueue_: function() {
+    this.valsAndCallbacks.shift(0);
+    if (this.valsAndCallbacks.length > 0) {
+      this.updateNext_();
+    }
   },
 
   /**
