@@ -17,6 +17,8 @@ var SCOPES = [
   ];
 
 var callbacks = [];
+var gapiRootCallbacks = [];
+var gapiFileLocks = {};
 
 var loaded = false;
 
@@ -154,10 +156,12 @@ function insertFile(name, type, blob, parentFolderId, callback) {
       parents = [{'kind': 'drive#fileLink', 'id': parentFolderId}];
     }
 
-    if (foldersArray.length) {
+    var nextFolder = foldersArray.shift();
+
+    if (nextFolder) {
       var metadata = {
         'mimeType': 'application/vnd.google-apps.folder',
-        'title': foldersArray.shift(),
+        'title': nextFolder
       };
 
       if (parents) {
@@ -185,21 +189,52 @@ function insertFile(name, type, blob, parentFolderId, callback) {
 }
 
 
+function waitForGapiRoot(callback) {
+  if (gapiRoot()) {
+    // gapi root already exists, so we can call back immediately.
+    callback();
+
+  } else if (gapiRootCallbacks.length) {
+    // First callback is already on the case.
+    gapiRootCallbacks.push(callback);
+
+  } else {
+    gapiRootCallbacks.push(callback);
+
+    // There is no gapi root and we're the first to make one. Make up a root
+    // directory to store our files in, and run our queued work.
+
+    var storageGapiRootName =
+        location.toString().replace(/#.*/, '').replace(/.*\//, '');
+
+    insertFile(storageGapiRootName + '/', null, null, null, function(file) {
+      // Now we have a root directory!
+      gapiRoot(file.id);
+
+      // Run our queued up callbacks.
+      for (var i = 0; i < gapiRootCallbacks.length; i++) {
+        gapiRootCallbacks[i]();
+      }
+      gapiRootCallbacks = [];
+    });
+  }
+}
+
+
 /**
  * Saves a file into the root google drive directory that contains our sandbox.
  * If there is no root directory, make one, and upload all the files from the
  * sandbox to it.
  */
 function gapiSaveToStorage(key, val, callback) {
+  if (val === null) {
+    throw new Exception('cannot save null value to gdrive');
+  }
+
   callback = callback ? callback : function() {};
 
-  if (gapiRoot()) {
-    // We have a root directory to store our files in.
-
-    if (val === null) {
-      throw new Exception('cannot save null value to gdrive');
-    }
-
+  waitForGapiRoot(function() {
+    console.log('save to storage', key, gapiRoot());
     var gapi = location.pathname + '.gapi:' + key;
 
     if (localStorage[gapi]) {
@@ -211,33 +246,7 @@ function gapiSaveToStorage(key, val, callback) {
         callback(file);
       });
     }
-
-  } else {
-    // Make up a root directory to store our files in, and try again.
-
-    var storageGapiRootName = location.toString().replace(/#.*/, '');
-
-    insertFile(storageGapiRootName + '/', null, null, null, function(file) {
-      // Now we have a root directory!
-      gapiRoot(file.id);
-
-      // Iterate through all the files in our sandbox and upload them to
-      // drive. This isn't important to our callback, so no need to keep track
-      // of them.
-      var files = listFiles();
-      for (var i = 0; i < files.length; i++) {
-        if (files[i] == key) {
-          // This is the original file we want to save. We'll take care of it
-          // with another call to gapiSaveToStorage (see below).
-          continue;
-        }
-        gapiSaveToStorage(files[i], loadFromStorage(files[i]));
-      }
-
-      // Save the file we're here to save.
-      gapiSaveToStorage(key, val, callback);
-    });
-  }
+  });
 }
 
 
