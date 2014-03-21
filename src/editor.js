@@ -35,8 +35,6 @@ module.directive('editor', function($timeout) {
     scope.$on('$destroy', destroy);
 
     editor.on("change", change);
-
-    change();
   };
 
   return {
