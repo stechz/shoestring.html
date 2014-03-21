@@ -34,11 +34,6 @@ UrlRegistry.prototype = {
   register: function(url, resource) {
     var promise;
 
-    if (this.storageImpl_) {
-      this.localDict_[url] = true;
-      this.storageImpl_.register(url, resource);
-    }
-
     if (resource instanceof File) {
       saveToLocalStorage(url, resource);
       promise = this.q_.when(resource);
@@ -58,10 +53,15 @@ UrlRegistry.prototype = {
 
     var defer = this.q_.defer();
     promise.then(function(blob) {
+      if (this.storageImpl_) {
+        this.localDict_[url] = true;
+        this.storageImpl_.register(url, blob);
+      }
+
       getURLFromFile(blob, function(url) {
         defer.resolve(url);
       });
-    });
+    }.bind(this));
 
     return defer.promise;
   },

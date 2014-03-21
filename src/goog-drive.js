@@ -94,18 +94,17 @@ function uploadFileWithMetadata(metadata, binaryData, id, callback) {
 
   callback = callback || function(file) { console.log(file); };
 
-  var base64Data = btoa(binaryData);
   var multipartRequestBody =
       delimiter +
       'Content-Type: application/json\r\n\r\n' +
       JSON.stringify(metadata);
 
   if (binaryData) {
-      multipartRequestBody += delimiter +
-          'Content-Type: ' + metadata.mimeType + '\r\n' +
-          'Content-Transfer-Encoding: base64\r\n' +
-          '\r\n' +
-          btoa(binaryData);
+    multipartRequestBody += delimiter +
+        'Content-Type: ' + metadata.mimeType + '\r\n' +
+        'Content-Transfer-Encoding: base64\r\n' +
+        '\r\n' +
+        btoa(binaryData) + '\r\n';
   }
 
   multipartRequestBody += close_delim;
@@ -132,19 +131,19 @@ function getFileContents(id, callback) {
 
 
 /** Updates file with new data. */
-function updateFile(name, type, blob, id, callback) {
+function updateFile(name, blob, id, callback) {
   var reader = new FileReader();
   reader.readAsBinaryString(blob);
   reader.onload = function(e) {
-    var contentType = type || 'application/octet-stream';
-    var metadata = {'title': name, 'mimeType': contentType};
+    var contentType = blob.type || 'application/octet-stream';
+    var metadata = {'title': name, 'mimeType': blob.type};
     uploadFileWithMetadata(metadata, reader.result, id, callback);
   };
 }
 
 
 /** Insert new file. */
-function insertFile(name, type, blob, parentFolderId, callback) {
+function insertFile(name, blob, parentFolderId, callback) {
   var foldersArray = name.split('/');
   var filename = foldersArray.pop();
 
@@ -256,8 +255,7 @@ FileUploadManager.prototype = {
     var val = this.valsAndCallbacks[0].val;
     var callback = this.valsAndCallbacks[0].callback;
 
-    var mimeType = guessMimeType(key);
-    insertFile(key, mimeType, new Blob([val]), gapiRoot(), function(file) {
+    insertFile(key, val, gapiRoot(), function(file) {
       localStorage[this.localStorageKey()] = file.id;
       if (callback) {
         callback(file);
@@ -276,8 +274,7 @@ FileUploadManager.prototype = {
     var val = this.valsAndCallbacks[0]['val'];
     var callback = this.valsAndCallbacks[0]['callback'];
 
-    var mimeType = guessMimeType(key);
-    updateFile(key, mimeType, new Blob([val]), this.id(), function(file) {
+    updateFile(key, val, this.id(), function(file) {
       this.continueQueue_();
     }.bind(this));
   },
@@ -371,7 +368,7 @@ GoogDriveStorage.prototype = {
       var defer = this.q_.defer();
       gapiInit(function() {
         getFileContents(localStorage[gapi], function(file) {
-          defer.resolve(file.selfLink);
+          defer.resolve(file.webContentLink);
         });
       });
       return defer.promise;
